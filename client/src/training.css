@@ -5,11 +5,11 @@
    ============================================================ */
 
 :root {
-  --tg-ground:#ebe1d2; --tg-surface:#f7f1e8; --tg-surface-2:#fdfaf3;
-  --tg-ink:#312a20; --tg-ink-soft:#6c5e4c; --tg-line:#dbccb6;
-  --tg-accent:#b1502b; --tg-accent-ink:#fbf3ea; --tg-accent-tint:#efdaca;
-  --tg-sage:#5c6647; --tg-sage-tint:#e0e2cf;
-  --tg-shadow:0 1px 2px rgba(49,42,32,.05), 0 12px 32px -12px rgba(49,42,32,.18);
+  --tg-ground:#e7d9c2; --tg-surface:#fbf6ee; --tg-surface-2:#fffdf8;
+  --tg-ink:#241d12; --tg-ink-soft:#4f4230; --tg-line:#c4b193;
+  --tg-accent:#a3451c; --tg-accent-ink:#fdf6ee; --tg-accent-tint:#ecd2bc;
+  --tg-sage:#4c5636; --tg-sage-tint:#d9dcc2;
+  --tg-shadow:0 1px 2px rgba(36,29,18,.08), 0 12px 32px -12px rgba(36,29,18,.24);
   --tg-serif:'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',Georgia,serif;
   --tg-sans:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --tg-mono:'SF Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -17,11 +17,11 @@
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --tg-ground:#211a13; --tg-surface:#2b231a; --tg-surface-2:#33291e;
-    --tg-ink:#f1e7d6; --tg-ink-soft:#b6a68f; --tg-line:#443729;
-    --tg-accent:#d9744c; --tg-accent-ink:#25100a; --tg-accent-tint:#3a2a20;
-    --tg-sage:#96a074; --tg-sage-tint:#2f3325;
-    --tg-shadow:0 1px 2px rgba(0,0,0,.3), 0 14px 34px -14px rgba(0,0,0,.55);
+    --tg-ground:#1c150e; --tg-surface:#2c2318; --tg-surface-2:#382d20;
+    --tg-ink:#f7efe0; --tg-ink-soft:#cfc0a6; --tg-line:#52432f;
+    --tg-accent:#e78259; --tg-accent-ink:#241009; --tg-accent-tint:#3f2e22;
+    --tg-sage:#a2ae7d; --tg-sage-tint:#323626;
+    --tg-shadow:0 1px 2px rgba(0,0,0,.35), 0 14px 34px -14px rgba(0,0,0,.6);
   }
 }
 
@@ -142,7 +142,7 @@
 .tg-pips{display:flex; gap:.35rem;}
 .tg-pip{width:24px; height:5px; border-radius:100px; background:var(--tg-line);}
 .tg-pip.on{background:var(--tg-accent);}
-.tg-topic{font-size:clamp(1.7rem,4.2vw,2.6rem); line-height:1.12; margin:.5rem 0 1.5rem; max-width:22ch;}
+.tg-topic{font-size:clamp(1.9rem,4.8vw,3rem); line-height:1.15; margin:.7rem 0 2.9rem; max-width:none;}
 .tg-options{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.8rem;}
 .tg-opt-card{
   text-align:left; background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:13px;
@@ -193,7 +193,7 @@
 .tg-chip .av{width:24px; height:24px; font-size:.68rem;}
 
 /* ---- Controls (facilitator) ---- */
-.tg-controls{display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:1.5rem; padding-top:1.3rem; border-top:1px solid var(--tg-line);}
+.tg-controls{display:flex; align-items:center; justify-content:flex-end; gap:1rem; flex-wrap:wrap; margin-top:1.5rem; padding-top:1.3rem; border-top:1px solid var(--tg-line);}
 .tg-controls .note{color:var(--tg-ink-soft); font-size:.86rem; max-width:44ch;}
 .tg-controls .buttons{display:flex; gap:.7rem; flex-wrap:wrap;}
 

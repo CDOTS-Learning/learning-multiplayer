@@ -48,7 +48,6 @@ export default function Facilitator() {
             </div>
             <Roster players={gameState.players} />
             <div className="tg-controls">
-              <span className="note">You’ll steer the group through all three rounds. Start once everyone’s in.</span>
               <div className="buttons">
                 <button className="tg-btn" onClick={room.start} disabled={!canStart}>
                   {canStart ? "Start the session →" : "Need at least 2 players"}
@@ -75,7 +74,6 @@ export default function Facilitator() {
             <Roster players={gameState.players} choices={gameState.choices} showChoiceState />
 
             <div className="tg-controls">
-              <span className="note">The picks reveal automatically once everyone has locked in. Use “Reveal now” if someone’s stuck.</span>
               <div className="buttons">
                 <button className="tg-btn ghost" onClick={room.revealNow}>Reveal now</button>
               </div>
@@ -92,7 +90,6 @@ export default function Facilitator() {
             </div>
             <Reveal round={gameState.round} players={gameState.players} choices={gameState.choices} />
             <div className="tg-controls">
-              <span className="note">Lead the discussion — ask people why they chose what they did. Move on when you’re ready.</span>
               <div className="buttons">
                 <button className="tg-btn" onClick={room.nextRound}>
                   {isLastRound ? "Finish session →" : "Next round →"}

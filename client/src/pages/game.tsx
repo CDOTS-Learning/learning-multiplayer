@@ -48,7 +48,6 @@ export default function Game() {
             </div>
             <div className="tg-section-label"><span className="tg-eyebrow">In the room</span></div>
             <Roster players={gameState.players} />
-            <p className="tg-progress" style={{ marginTop: "1.4rem" }}>Waiting for the facilitator to start…</p>
           </>
         )}
 
@@ -105,7 +104,6 @@ export default function Game() {
               <Pips round={gameState.round} total={gameState.totalRounds} />
             </div>
             <Reveal round={gameState.round} players={gameState.players} choices={gameState.choices} />
-            <p className="tg-progress" style={{ marginTop: "1.4rem" }}>Talk it through — your facilitator will move things on.</p>
           </>
         )}
 

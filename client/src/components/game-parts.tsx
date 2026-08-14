@@ -37,7 +37,7 @@ export function RoomBar({
           <ArrowLeft size={16} />
         </button>
         <div>
-          <div className="brand">Before We Begin</div>
+          <div className="brand">Imagine the perfect training exists</div>
           <div className="role">{roleLabel}</div>
         </div>
       </div>

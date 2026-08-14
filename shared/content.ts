@@ -9,7 +9,7 @@ export interface RoundContent {
 // The umbrella framing that sits over all three rounds.
 export const FRAMING = {
   intro: "You are about to enrol into a training: what do you hope to find?",
-  note: "Keep one card per round — three rounds, then reveal and discuss.",
+  note: "Keep one card per round — three rounds.",
   standing: "…what do you hope to find?",
 };
 

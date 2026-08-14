@@ -57,8 +57,7 @@ export default function Home() {
             <span className="tg-tag">A reflection warm-up</span>
             <span className="tg-tag">2–5 players + facilitator</span>
           </div>
-          <h1>Before&nbsp;We&nbsp;Begin</h1>
-          <p className="tg-lede">A quiet room for a group to share what they hope a training will give them — then talk about it.</p>
+          <h1>Imagine the perfect training exists</h1>
           <blockquote className="tg-quote">
             <em>“{FRAMING.intro}”</em>
             <span>{FRAMING.note}</span>
