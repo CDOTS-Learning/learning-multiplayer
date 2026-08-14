@@ -36,7 +36,7 @@ export const ROUNDS: RoundContent[] = [
     ],
   },
   {
-    topic: "What made this training a success?",
+    topic: "What would make this training a success?",
     options: [
       "Knowledge gained",
       "Behaviour change",
