@@ -115,10 +115,14 @@ export function Reveal({
         <h2 className="tg-serif">{content.topic}</h2>
         <span className="tg-count">{valid.length} of {players.length} chosen</span>
       </div>
-      {content.options.map((opt, i) => {
-        const pickers = valid.filter((c) => c.optionIndex === i);
-        const hot = pickers.length > 0;
-        return (
+      {content.options
+        .map((opt, i) => ({ opt, i, pickers: valid.filter((c) => c.optionIndex === i) }))
+        // Chosen options rise to the top, unchosen sink to the bottom. Stable
+        // sort keeps each group in its original order (no implied 1-2-3 ranking).
+        .sort((a, b) => (a.pickers.length > 0 ? 0 : 1) - (b.pickers.length > 0 ? 0 : 1))
+        .map(({ opt, i, pickers }) => {
+          const hot = pickers.length > 0;
+          return (
           <div key={i} className={`tg-opt ${hot ? "hot" : "empty"}`}>
             <span className="name">{opt}</span>
             <span className="tg-chips">
