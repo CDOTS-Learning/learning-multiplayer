@@ -142,7 +142,7 @@
 .tg-pips{display:flex; gap:.35rem;}
 .tg-pip{width:24px; height:5px; border-radius:100px; background:var(--tg-line);}
 .tg-pip.on{background:var(--tg-accent);}
-.tg-topic{font-size:clamp(1.9rem,4.8vw,3rem); line-height:1.15; margin:1.7rem 0 6.75rem; max-width:none;}
+.tg-app .tg-topic{font-size:clamp(1.9rem,4.8vw,3rem); line-height:1.15; margin:1.7rem 0 6.75rem !important; max-width:none;}
 .tg-options{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1.2rem;}
 .tg-opt-card{
   text-align:left; background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:13px;
