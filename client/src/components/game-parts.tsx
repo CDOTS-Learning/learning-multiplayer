@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useState } from "react";
-import type { Player, Choice } from "@shared/schema";
+import type { Player, Choice, Answer } from "@shared/schema";
 import { ROUNDS } from "@shared/content";
 
 export function initials(name: string): string {
@@ -137,6 +137,34 @@ export function Reveal({
                 );
               })}
             </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Final overview: rows = the 3 questions, columns = players, cells = their pick. */
+export function FinalBoard({ players, answers }: { players: Player[]; answers: Answer[] }) {
+  return (
+    <div className="tg-board">
+      {ROUNDS.map((r, ri) => {
+        const round = ri + 1;
+        return (
+          <div className="tg-board-row" key={ri}>
+            <div className="tg-board-qlabel">{r.topic}</div>
+            <div className="tg-board-cells">
+              {players.map((p, pi) => {
+                const a = answers.find((x) => x.round === round && x.playerName === p.name);
+                const text = a ? r.options[a.optionIndex] : null;
+                return (
+                  <div className={`tg-board-cell col${pi % 3} ${text ? "" : "empty"}`} key={p.id}>
+                    <span className="who">{p.name}</span>
+                    <span className="ans tg-serif">{text ?? "—"}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         );
       })}

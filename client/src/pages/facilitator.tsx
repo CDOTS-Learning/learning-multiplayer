@@ -1,6 +1,6 @@
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips } from "@/components/game-parts";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard } from "@/components/game-parts";
 import { FRAMING, ROUNDS } from "@shared/content";
 
 export default function Facilitator() {
@@ -101,15 +101,19 @@ export default function Facilitator() {
 
         {/* Ended */}
         {gameState.phase === "ended" && (
-          <div className="tg-ended">
-            <span className="tg-eyebrow">That’s a wrap</span>
-            <h2 className="tg-serif">Session complete.</h2>
-            <p>The group has shared what they each hope to find. You can run it again with the same people, or close the room.</p>
-            <div className="buttons" style={{ display: "flex", gap: ".7rem", flexWrap: "wrap", justifyContent: "center" }}>
-              <button className="tg-btn" onClick={room.restart}>Run it again</button>
-              <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
+          <>
+            <div className="tg-round-line">
+              <span className="tg-eyebrow">Complete · how the group answered</span>
             </div>
-          </div>
+            <h1 className="tg-topic">Everyone’s answers, side by side</h1>
+            <FinalBoard players={gameState.players} answers={gameState.answers} />
+            <div className="tg-controls">
+              <div className="buttons">
+                <button className="tg-btn" onClick={room.restart}>Run it again</button>
+                <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

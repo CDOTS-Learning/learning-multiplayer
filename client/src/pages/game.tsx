@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips } from "@/components/game-parts";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard } from "@/components/game-parts";
 import { FRAMING, ROUNDS } from "@shared/content";
 
 export default function Game() {
@@ -109,12 +109,18 @@ export default function Game() {
 
         {/* Ended */}
         {gameState.phase === "ended" && (
-          <div className="tg-ended">
-            <span className="tg-eyebrow">That’s a wrap</span>
-            <h2 className="tg-serif">Thanks for reflecting together.</h2>
-            <p>You’ve shared what you each hope to find. Carry that into the training that follows.</p>
-            <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
-          </div>
+          <>
+            <div className="tg-round-line">
+              <span className="tg-eyebrow">That’s a wrap · how the group answered</span>
+            </div>
+            <h1 className="tg-topic">Everyone’s answers, side by side</h1>
+            <FinalBoard players={gameState.players} answers={gameState.answers} />
+            <div className="tg-controls">
+              <div className="buttons">
+                <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

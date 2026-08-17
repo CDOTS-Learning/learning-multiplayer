@@ -23,6 +23,15 @@ export const choiceSchema = z.object({
 });
 export type Choice = z.infer<typeof choiceSchema>;
 
+// A recorded answer, kept across ALL rounds for the final overview board.
+// Keyed by player NAME (stable across reconnects, unlike the socket id).
+export const answerSchema = z.object({
+  round: z.number(),
+  playerName: z.string(),
+  optionIndex: z.number(),
+});
+export type Answer = z.infer<typeof answerSchema>;
+
 export type GamePhase =
   | "waiting"    // Lobby: waiting for players, facilitator can start
   | "selecting"  // Everyone picks one card (in private)
@@ -40,6 +49,7 @@ export const gameStateSchema = z.object({
   round: z.number(),          // 0 in the lobby, 1..totalRounds during play
   totalRounds: z.number(),
   choices: z.array(choiceSchema), // picks for the CURRENT round only
+  answers: z.array(answerSchema), // all picks across rounds, for the final board
   maxPlayers: z.number(),
 });
 export type GameState = z.infer<typeof gameStateSchema>;

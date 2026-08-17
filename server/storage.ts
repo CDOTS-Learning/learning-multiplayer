@@ -31,6 +31,7 @@ export class MemStorage {
       round: 0,
       totalRounds: TOTAL_ROUNDS,
       choices: [],
+      answers: [],
       maxPlayers: MAX_PLAYERS,
     };
     this.rooms.set(roomCode, state);
@@ -126,7 +127,19 @@ export class MemStorage {
     room.phase = "selecting";
     room.round = 1;
     room.choices = [];
+    room.answers = [];
     return true;
+  }
+
+  /** Record the current round's picks (by player name) for the final board. */
+  private snapshotRound(room: GameState): void {
+    room.answers = room.answers.filter((a) => a.round !== room.round);
+    for (const c of room.choices) {
+      const player = room.players.find((p) => p.id === c.playerId);
+      if (player) {
+        room.answers.push({ round: room.round, playerName: player.name, optionIndex: c.optionIndex });
+      }
+    }
   }
 
   /** A player picks one option this round. Auto-reveals once everyone has picked. */
@@ -149,6 +162,7 @@ export class MemStorage {
     const chosen = connected.filter((p) => room.choices.some((c) => c.playerId === p.id));
     if (connected.length > 0 && chosen.length === connected.length) {
       room.phase = "revealing";
+      this.snapshotRound(room);
     }
     return true;
   }
@@ -159,6 +173,7 @@ export class MemStorage {
     if (!room || room.phase !== "selecting") return false;
     if (room.facilitator?.id !== byId) return false;
     room.phase = "revealing";
+    this.snapshotRound(room);
     return true;
   }
 
@@ -184,6 +199,7 @@ export class MemStorage {
     room.phase = "waiting";
     room.round = 0;
     room.choices = [];
+    room.answers = [];
     return true;
   }
 }

@@ -207,6 +207,27 @@
 .tg-spin{width:34px; height:34px; border-radius:50%; border:3px solid var(--tg-line); border-bottom-color:var(--tg-accent); animation:tg-spin 1s linear infinite; margin:0 auto .9rem;}
 @keyframes tg-spin{to{transform:rotate(360deg);}}
 
+/* ---- Final overview board (3 questions × players) ---- */
+.tg-board{display:flex; flex-direction:column; gap:.8rem;}
+.tg-board-row{
+  display:grid; grid-template-columns:minmax(150px,1fr) 3fr; gap:.9rem; align-items:center;
+  background:var(--tg-surface); border:1px solid var(--tg-line); border-radius:14px; padding:.85rem 1rem;
+}
+.tg-board-qlabel{font-size:.92rem; line-height:1.3; color:var(--tg-ink-soft);}
+.tg-board-cells{display:flex; flex-wrap:wrap; gap:.5rem;}
+.tg-board-cell{
+  flex:1 1 140px; min-width:130px;
+  background:var(--tg-surface-2); border:1px solid var(--tg-line); border-left-width:3px; border-radius:10px;
+  padding:.7rem .85rem; display:flex; flex-direction:column; gap:.35rem;
+}
+.tg-board-cell .who{font-family:var(--tg-mono); font-size:.64rem; letter-spacing:.1em; text-transform:uppercase; color:var(--tg-ink-soft);}
+.tg-board-cell .ans{font-size:1.02rem; line-height:1.25; color:var(--tg-ink);}
+.tg-board-cell.empty .ans{color:var(--tg-ink-soft); font-style:italic;}
+.tg-board-cell.col0{border-left-color:var(--tg-accent);}
+.tg-board-cell.col1{border-left-color:var(--tg-sage);}
+.tg-board-cell.col2{border-left-color:var(--tg-ink-soft);}
+@media (max-width:720px){ .tg-board-row{grid-template-columns:1fr; gap:.7rem;} }
+
 @media (prefers-reduced-motion:reduce){
   .tg-app *, .tg-spin{transition:none !important; animation:none !important;}
 }
