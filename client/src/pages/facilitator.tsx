@@ -2,6 +2,7 @@ import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
 import { RoomBar, Roster, Reveal, Pips, FinalBoard } from "@/components/game-parts";
 import { FRAMING, ROUNDS } from "@shared/content";
+import { printHtml, esc } from "@/lib/print";
 
 export default function Facilitator() {
   const [, params] = useRoute("/facilitator/:roomCode");
@@ -24,6 +25,24 @@ export default function Facilitator() {
   const canStart = connected >= 2;
   const content = ROUNDS[gameState.round - 1];
   const isLastRound = gameState.round >= gameState.totalRounds;
+
+  const boardDoc = () => {
+    const players = gameState.players;
+    const header = players.map((p) => `<th>${esc(p.name)}</th>`).join("");
+    const rows = ROUNDS.map((r, ri) => {
+      const round = ri + 1;
+      const cells = players
+        .map((p) => {
+          const a = gameState.answers.find((x) => x.round === round && x.playerName === p.name);
+          return `<td>${esc(a ? r.options[a.optionIndex] : "—")}</td>`;
+        })
+        .join("");
+      return `<tr><td class="q">${esc(r.topic)}</td>${cells}</tr>`;
+    }).join("");
+    return `<p class="k">Group answers</p><h1>How the group answered</h1>
+      <table><thead><tr><th></th>${header}</tr></thead><tbody>${rows}</tbody></table>
+      <p class="foot">Saved ${esc(new Date().toLocaleString())}</p>`;
+  };
 
   return (
     <div className="tg-app">
@@ -109,6 +128,7 @@ export default function Facilitator() {
             <FinalBoard players={gameState.players} answers={gameState.answers} />
             <div className="tg-controls">
               <div className="buttons">
+                <button className="tg-btn ghost" onClick={() => printHtml("Group answers", boardDoc())}>Save board (PDF)</button>
                 <button className="tg-btn" onClick={room.restart}>Run it again</button>
                 <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
               </div>
