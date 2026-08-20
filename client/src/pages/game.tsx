@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard } from "@/components/game-parts";
-import { FRAMING, ROUNDS } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaOverview } from "@/components/game-parts";
+import { FRAMING, ROUNDS, personaIntakeInfo } from "@shared/content";
 
 export default function Game() {
   const [, params] = useRoute("/game/:roomCode");
@@ -107,6 +107,74 @@ export default function Game() {
           </>
         )}
 
+        {/* Persona intake (facilitator drives; one player holds the pen) */}
+        {gameState.phase === "persona" && (() => {
+          const info = personaIntakeInfo(gameState.personaStep);
+          const isController = myId === gameState.controllerId;
+          const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
+            || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
+          return (
+            <>
+              <PersonaIntake persona={gameState.persona} kind={info.kind} personaIndex={info.index}
+                isController={isController} driverLabel={driver} onChange={room.setPersona} />
+              {isController ? (
+                <p className="tg-standing" style={{ marginTop: "1.2rem" }}>You have the pen — your facilitator moves the group on.</p>
+              ) : (
+                <div className="tg-controls"><div className="buttons">
+                  <button className="tg-btn" onClick={room.takeControl}>Take control</button>
+                </div></div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Meet the persona (break card) */}
+        {gameState.phase === "personaReveal" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">Meet your learning persona</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: ".8rem" }}>{gameState.persona.name || "Your persona"}</h1>
+            <p className="tg-standing" style={{ marginBottom: "1.6rem" }}>
+              Next, you’ll answer the same three questions together as {gameState.persona.name || "them"}.
+            </p>
+            <PersonaOverview persona={gameState.persona} />
+          </>
+        )}
+
+        {/* Persona round (answer together as the persona) */}
+        {gameState.phase === "personaRound" && (() => {
+          const q = ROUNDS[gameState.personaRoundQ];
+          const isController = myId === gameState.controllerId;
+          const sel = gameState.personaAnswers[gameState.personaRoundQ] ?? -1;
+          const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
+            || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
+          return (
+            <>
+              <div className="tg-round-line">
+                <span className="tg-eyebrow">As {gameState.persona.name || "the persona"} · Question {gameState.personaRoundQ + 1} of {gameState.totalRounds}</span>
+              </div>
+              <h1 className="tg-topic">{q.topic}</h1>
+              {!isController && (
+                <p className="tg-standing" style={{ marginBottom: "1rem" }}><strong>{driver}</strong> is answering for the group — take control to choose.</p>
+              )}
+              <div className="tg-options">
+                {q.options.map((opt, i) => (
+                  <button key={i} className={`tg-opt-card ${sel === i ? "sel" : ""} ${isController ? "" : "is-live"}`}
+                    onClick={isController ? () => room.choosePersona(i) : undefined} aria-disabled={!isController}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {isController ? (
+                <p className="tg-standing" style={{ marginTop: "1rem" }}>You have the pen — your facilitator moves the group on.</p>
+              ) : (
+                <div className="tg-controls"><div className="buttons">
+                  <button className="tg-btn" onClick={room.takeControl}>Take control</button>
+                </div></div>
+              )}
+            </>
+          );
+        })()}
+
         {/* Ended */}
         {gameState.phase === "ended" && (
           <>
@@ -114,7 +182,13 @@ export default function Game() {
               <span className="tg-eyebrow">That’s a wrap · how the group answered</span>
             </div>
             <h1 className="tg-topic">Everyone’s answers, side by side</h1>
-            <FinalBoard players={gameState.players} answers={gameState.answers} />
+            <FinalBoard players={gameState.players} answers={gameState.answers}
+              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
+            <div className="tg-round-line" style={{ marginTop: "2.4rem" }}>
+              <span className="tg-eyebrow">Your group’s learning persona</span>
+            </div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>{gameState.persona.name || "The persona"}</h1>
+            <PersonaOverview persona={gameState.persona} />
             <div className="tg-controls">
               <div className="buttons">
                 <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>

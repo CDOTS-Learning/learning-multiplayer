@@ -117,6 +117,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (storage.nextRound(room.roomCode, socket.id)) emitGameState(room.roomCode);
     });
 
+    // ---- Shared persona ----
+    socket.on("take_control", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.takeControl(room.roomCode, socket.id)) emitGameState(room.roomCode);
+    });
+    socket.on("set_persona", (persona) => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.setPersona(room.roomCode, socket.id, persona)) emitGameState(room.roomCode);
+    });
+    socket.on("choose_persona", (optionIndex: number) => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.choosePersona(room.roomCode, socket.id, optionIndex)) emitGameState(room.roomCode);
+    });
+    socket.on("persona_next", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.personaNext(room.roomCode, socket.id)) emitGameState(room.roomCode);
+    });
+    socket.on("persona_back", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.personaBack(room.roomCode, socket.id)) emitGameState(room.roomCode);
+    });
+
     // Facilitator runs it again with the same group.
     socket.on("restart", () => {
       const room = storage.getRoomByAnyId(socket.id);

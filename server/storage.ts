@@ -1,5 +1,5 @@
-import type { GameState } from "@shared/schema";
-import { TOTAL_ROUNDS, ROUNDS } from "@shared/content";
+import type { GameState, Persona } from "@shared/schema";
+import { TOTAL_ROUNDS, ROUNDS, PERSONA_QUESTIONS, PERSONA_INTAKE_LAST, emptyPersona } from "@shared/content";
 
 const MAX_PLAYERS = 5;
 const MIN_PLAYERS = 2;
@@ -33,6 +33,11 @@ export class MemStorage {
       choices: [],
       answers: [],
       maxPlayers: MAX_PLAYERS,
+      controllerId: "",
+      persona: emptyPersona(),
+      personaStep: 0,
+      personaAnswers: new Array(TOTAL_ROUNDS).fill(-1),
+      personaRoundQ: 0,
     };
     this.rooms.set(roomCode, state);
     return roomCode;
@@ -76,6 +81,7 @@ export class MemStorage {
       if (byName.isConnected && room.phase === "waiting") {
         return { ok: false, reason: "duplicate_name" };
       }
+      if (room.controllerId === byName.id) room.controllerId = socketId; // keep the pen after a reconnect
       byName.id = socketId;
       byName.isConnected = true;
       return { ok: true, action: "reconnected" };
@@ -128,7 +134,16 @@ export class MemStorage {
     room.round = 1;
     room.choices = [];
     room.answers = [];
+    room.persona = emptyPersona();
+    room.personaStep = 0;
+    room.personaAnswers = new Array(room.totalRounds).fill(-1);
+    room.personaRoundQ = 0;
+    room.controllerId = "";
     return true;
+  }
+
+  private firstPlayerId(room: GameState): string {
+    return room.players.find((p) => p.isConnected)?.id ?? room.facilitator?.id ?? "";
   }
 
   /** Record the current round's picks (by player name) for the final board. */
@@ -177,7 +192,7 @@ export class MemStorage {
     return true;
   }
 
-  /** Facilitator moves on: next round, or ends the session after the last one. */
+  /** Facilitator moves on: next round, or into the shared persona after the last one. */
   nextRound(roomCode: string, byId: string): boolean {
     const room = this.rooms.get(roomCode);
     if (!room || room.phase !== "revealing") return false;
@@ -187,9 +202,99 @@ export class MemStorage {
       room.choices = [];
       room.phase = "selecting";
     } else {
-      room.phase = "ended";
+      // Individual rounds done → the group builds ONE shared learning persona.
+      room.phase = "persona";
+      room.personaStep = 0;
+      room.persona = emptyPersona();
+      room.personaAnswers = new Array(room.totalRounds).fill(-1);
+      room.personaRoundQ = 0;
+      room.controllerId = this.firstPlayerId(room);
     }
     return true;
+  }
+
+  /** Persona intake: the current driver edits the shared persona. */
+  setPersona(roomCode: string, byId: string, persona: Persona): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== "persona") return false;
+    const controller = room.controllerId || this.firstPlayerId(room);
+    if (byId !== controller) return false;
+    const answers = PERSONA_QUESTIONS.map((q, i) => {
+      const v = Math.floor(Number(persona?.answers?.[i]));
+      return Number.isFinite(v) && v >= 0 && v < q.options.length ? v : -1;
+    });
+    room.persona = {
+      name: String(persona?.name ?? "").slice(0, 60),
+      answers,
+      languageOther: String(persona?.languageOther ?? "").slice(0, 60),
+      comment: String(persona?.comment ?? "").slice(0, 600),
+    };
+    return true;
+  }
+
+  /** persona / personaRound: grab the pen (any player or the facilitator). */
+  takeControl(roomCode: string, id: string): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || (room.phase !== "persona" && room.phase !== "personaRound")) return false;
+    const isMember = room.facilitator?.id === id || room.players.some((p) => p.id === id);
+    if (!isMember) return false;
+    room.controllerId = id;
+    return true;
+  }
+
+  /** personaRound: the driver picks the group's shared answer for the current question. */
+  choosePersona(roomCode: string, byId: string, optionIndex: number): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== "personaRound") return false;
+    const controller = room.controllerId || this.firstPlayerId(room);
+    if (byId !== controller) return false;
+    const options = ROUNDS[room.personaRoundQ]?.options;
+    if (!options || optionIndex < 0 || optionIndex >= options.length) return false;
+    room.personaAnswers[room.personaRoundQ] = optionIndex;
+    return true;
+  }
+
+  /** Facilitator drives the persona flow forward (intake → reveal → persona round → end). */
+  personaNext(roomCode: string, byId: string): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.facilitator?.id !== byId) return false;
+    if (room.phase === "persona") {
+      if (room.personaStep < PERSONA_INTAKE_LAST) room.personaStep += 1;
+      else room.phase = "personaReveal";
+      return true;
+    }
+    if (room.phase === "personaReveal") {
+      room.phase = "personaRound";
+      room.personaRoundQ = 0;
+      return true;
+    }
+    if (room.phase === "personaRound") {
+      if (room.personaRoundQ < room.totalRounds - 1) room.personaRoundQ += 1;
+      else room.phase = "ended";
+      return true;
+    }
+    return false;
+  }
+
+  /** Facilitator steps back through the persona flow. */
+  personaBack(roomCode: string, byId: string): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.facilitator?.id !== byId) return false;
+    if (room.phase === "persona") {
+      if (room.personaStep > 0) { room.personaStep -= 1; return true; }
+      return false;
+    }
+    if (room.phase === "personaReveal") {
+      room.phase = "persona";
+      room.personaStep = PERSONA_INTAKE_LAST;
+      return true;
+    }
+    if (room.phase === "personaRound") {
+      if (room.personaRoundQ > 0) room.personaRoundQ -= 1;
+      else room.phase = "personaReveal";
+      return true;
+    }
+    return false;
   }
 
   /** Facilitator can run the session again with the same group. */
@@ -200,6 +305,11 @@ export class MemStorage {
     room.round = 0;
     room.choices = [];
     room.answers = [];
+    room.persona = emptyPersona();
+    room.personaStep = 0;
+    room.personaAnswers = new Array(room.totalRounds).fill(-1);
+    room.personaRoundQ = 0;
+    room.controllerId = "";
     return true;
   }
 }
