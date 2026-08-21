@@ -59,9 +59,10 @@ export class MemStorage {
   joinFacilitator(roomCode: string, socketId: string, name: string): JoinResult {
     const room = this.rooms.get(roomCode);
     if (!room) return { ok: false, reason: "not_found" };
-    const isReconnect = !!room.facilitator;
+    const oldId = room.facilitator?.id;
+    if (oldId && room.controllerId === oldId) room.controllerId = socketId; // keep the pen after a reconnect
     room.facilitator = { id: socketId, name, isConnected: true };
-    return { ok: true, action: isReconnect ? "reconnected" : "joined" };
+    return { ok: true, action: oldId ? "reconnected" : "joined" };
   }
 
   /**
@@ -301,10 +302,20 @@ export class MemStorage {
     return true;
   }
 
-  /** Facilitator drives the whole post-reflection flow forward. */
+  /** Who may advance/step back: the facilitator always; the current pen-holder
+   *  during the shared persona phases (so players can self-navigate the questions). */
+  private canDriveFlow(room: GameState, byId: string): boolean {
+    if (room.facilitator?.id === byId) return true;
+    if (room.phase === "persona" || room.phase === "personaReveal" || room.phase === "personaRound") {
+      return byId === (room.controllerId || this.firstPlayerId(room));
+    }
+    return false;
+  }
+
+  /** Facilitator (or the current pen-holder, in persona phases) drives the flow forward. */
   flowNext(roomCode: string, byId: string): boolean {
     const room = this.rooms.get(roomCode);
-    if (!room || room.facilitator?.id !== byId) return false;
+    if (!room || !this.canDriveFlow(room, byId)) return false;
     switch (room.phase) {
       case "reflectionSelfBoard": room.phase = "backpackDemo"; return true;
       case "backpackDemo": room.phase = "backpackBuilding1"; return true;
@@ -333,10 +344,10 @@ export class MemStorage {
     }
   }
 
-  /** Facilitator steps back through the post-reflection flow. */
+  /** Facilitator (or the current pen-holder, in persona phases) steps back. */
   flowBack(roomCode: string, byId: string): boolean {
     const room = this.rooms.get(roomCode);
-    if (!room || room.facilitator?.id !== byId) return false;
+    if (!room || !this.canDriveFlow(room, byId)) return false;
     switch (room.phase) {
       case "backpackDemo": room.phase = "reflectionSelfBoard"; return true;
       case "backpackBuilding1": room.phase = "backpackDemo"; return true;

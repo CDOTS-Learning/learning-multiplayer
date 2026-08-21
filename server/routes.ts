@@ -12,9 +12,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const io: TypedServer = new SocketIOServer(httpServer, {
     cors: { origin: "*", methods: ["GET", "POST"] },
-    // Tolerate short network hiccups before flipping a client "offline".
+    // Tolerate a client whose JS thread is briefly blocked (e.g. a print / PDF
+    // dialog left open) or backgrounded, before flipping it "offline".
     pingInterval: 25000,
-    pingTimeout: 40000,
+    pingTimeout: 120000,
   });
 
   function emitGameState(roomCode: string): void {

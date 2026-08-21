@@ -152,23 +152,29 @@ export default function Game() {
           </>
         )}
 
-        {/* Persona intake (facilitator drives; one player holds the pen) */}
+        {/* Persona intake (the pen-holder types AND navigates; others can take control) */}
         {gameState.phase === "persona" && (() => {
           const info = personaIntakeInfo(gameState.personaStep);
-          const isController = myId === gameState.controllerId;
           const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
             || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
+          const nextDisabled =
+            info.kind === "personaName" ? gameState.persona.name.trim() === ""
+            : info.kind === "personaQuestion" ? (gameState.persona.answers?.[info.index] ?? -1) < 0
+            : false;
           return (
             <>
               <PersonaIntake persona={gameState.persona} kind={info.kind} personaIndex={info.index}
                 isController={isController} driverLabel={driver} onChange={room.setPersona} />
-              {isController ? (
-                <p className="tg-standing" style={{ marginTop: "1.2rem" }}>You have the pen — your facilitator moves the group on.</p>
-              ) : (
-                <div className="tg-controls"><div className="buttons">
+              <div className="tg-controls"><div className="buttons">
+                {isController ? (
+                  <>
+                    <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+                    <button className="tg-btn" onClick={room.flowNext} disabled={nextDisabled}>Next →</button>
+                  </>
+                ) : (
                   <button className="tg-btn" onClick={room.takeControl}>Take control</button>
-                </div></div>
-              )}
+                )}
+              </div></div>
             </>
           );
         })()}
@@ -182,6 +188,12 @@ export default function Game() {
               Next, you’ll answer the same three questions together as {gameState.persona.name || "them"}.
             </p>
             <PersonaOverview persona={gameState.persona} />
+            {isController && (
+              <div className="tg-controls"><div className="buttons">
+                <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+                <button className="tg-btn" onClick={room.flowNext}>Answer as the persona →</button>
+              </div></div>
+            )}
           </>
         )}
 
@@ -209,13 +221,18 @@ export default function Game() {
                   </button>
                 ))}
               </div>
-              {isController ? (
-                <p className="tg-standing" style={{ marginTop: "1rem" }}>You have the pen — your facilitator moves the group on.</p>
-              ) : (
-                <div className="tg-controls"><div className="buttons">
+              <div className="tg-controls"><div className="buttons">
+                {isController ? (
+                  <>
+                    <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+                    <button className="tg-btn" onClick={room.flowNext} disabled={sel < 0}>
+                      {gameState.personaRoundQ >= gameState.totalRounds - 1 ? "See the comparison →" : "Next question →"}
+                    </button>
+                  </>
+                ) : (
                   <button className="tg-btn" onClick={room.takeControl}>Take control</button>
-                </div></div>
-              )}
+                )}
+              </div></div>
             </>
           );
         })()}

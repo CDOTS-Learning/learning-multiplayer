@@ -52,8 +52,10 @@ export function useRoom(roomCode: string, role: Role) {
       });
     };
 
+    // Re-run on EVERY (re)connect so a reconnect after a blocking print/idle
+    // refreshes our socket id and re-claims our seat cleanly.
     if (socket.connected) doJoin();
-    else socket.once("connect", doJoin);
+    socket.on("connect", doJoin);
     socket.io.on("reconnect", doJoin);
 
     return () => {
