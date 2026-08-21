@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaOverview } from "@/components/game-parts";
-import { FRAMING, ROUNDS, personaIntakeInfo } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo } from "@shared/content";
 
 export default function Game() {
   const [, params] = useRoute("/game/:roomCode");
@@ -32,6 +32,9 @@ export default function Game() {
   const myChoice = gameState.choices.find((c) => c.playerId === myId);
   const locked = !!myChoice;
   const content = ROUNDS[gameState.round - 1];
+  const myBackpack = gameState.backpacks.find((b) => b.playerName === room.name)?.items ?? [];
+  const isController = myId === gameState.controllerId;
+  const personaName = gameState.persona.name || "the persona";
 
   return (
     <div className="tg-app">
@@ -44,7 +47,7 @@ export default function Game() {
             <div className="tg-framing">
               <span className="tg-eyebrow">Before we begin</span>
               <p className="intro tg-serif">{FRAMING.intro}</p>
-              <p className="note">{FRAMING.note}</p>
+              <p className="note">A short, guided reflection together — one step at a time. Your facilitator will lead the way.</p>
             </div>
             <div className="tg-section-label"><span className="tg-eyebrow">In the room</span></div>
             <Roster players={gameState.players} />
@@ -104,6 +107,48 @@ export default function Game() {
               <Pips round={gameState.round} total={gameState.totalRounds} />
             </div>
             <Reveal round={gameState.round} players={gameState.players} choices={gameState.choices} />
+          </>
+        )}
+
+        {/* Overview: individual reflection answers */}
+        {gameState.phase === "reflectionSelfBoard" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">Everyone’s answers, side by side</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the group answered</h1>
+            <FinalBoard players={gameState.players} answers={gameState.answers} />
+          </>
+        )}
+
+        {/* Backpack demo (facilitator packs; players watch) */}
+        {gameState.phase === "backpackDemo" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">Warm-up · watch the example</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: ".8rem" }}>{BACKPACK_FRAMING.intro}</h1>
+            <p className="tg-standing" style={{ marginBottom: "1.4rem" }}>Your facilitator is packing an example — you’ll pack your own next.</p>
+            <div className="bp-compare"><BackpackView title="Facilitator’s example" items={gameState.demo} maxItems={gameState.maxItems} /></div>
+          </>
+        )}
+
+        {/* Backpack: your own */}
+        {gameState.phase === "backpackBuilding1" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">Your own backpack</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: ".6rem" }}>{BACKPACK_FRAMING.question}</h1>
+            <BackpackScene packed={myBackpack} maxItems={gameState.maxItems} onAdd={room.addItem} onRemove={room.removeItem} />
+            {myBackpack.length >= gameState.maxItems && <p className="tg-progress" style={{ marginTop: "1.2rem" }}>Packed — waiting for the others and your facilitator.</p>}
+          </>
+        )}
+
+        {/* Overview: everyone's backpacks */}
+        {gameState.phase === "backpackSelfBoard" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">Everyone’s backpacks, side by side</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>What the group packed</h1>
+            <div className="bp-compare">
+              {gameState.players.map((p) => (
+                <BackpackView key={p.id} title={p.name} items={gameState.backpacks.find((b) => b.playerName === p.name)?.items ?? []} maxItems={gameState.maxItems} />
+              ))}
+            </div>
           </>
         )}
 
@@ -175,21 +220,74 @@ export default function Game() {
           );
         })()}
 
+        {/* Overview: persona vs everyone (reflection) */}
+        {gameState.phase === "reflectionCompare" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">You all ↔ {personaName}</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the persona’s answers compare</h1>
+            <FinalBoard players={gameState.players} answers={gameState.answers}
+              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
+          </>
+        )}
+
+        {/* Shared persona backpack (one driver at a time) */}
+        {gameState.phase === "backpackBuilding2" && (() => {
+          const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
+            || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
+          return (
+            <>
+              <div className="tg-round-line"><span className="tg-eyebrow">One shared backpack for {personaName}</span></div>
+              <h1 className="tg-topic" style={{ marginBottom: ".5rem" }}>Pack it together</h1>
+              <p className="tg-standing" style={{ marginBottom: "1rem" }}>
+                {isController ? "You have the controls — pack for the group." : `${driver} is packing. Take control when it’s your turn.`}
+              </p>
+              {isController ? (
+                <BackpackScene packed={gameState.sharedBackpack} maxItems={gameState.maxItems} onAdd={room.addItem} onRemove={room.removeItem} />
+              ) : (
+                <>
+                  <BackpackScene packed={gameState.sharedBackpack} maxItems={gameState.maxItems} onAdd={room.addItem} onRemove={room.removeItem} readOnly />
+                  <div className="tg-controls"><div className="buttons">
+                    <button className="tg-btn" onClick={room.takeControl}>Take control</button>
+                  </div></div>
+                </>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Overview: persona backpack vs everyone's */}
+        {gameState.phase === "backpackCompare" && (
+          <>
+            <div className="tg-round-line"><span className="tg-eyebrow">The persona’s backpack ↔ everyone’s</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>What the group packed for {personaName}</h1>
+            <div className="bp-compare">
+              <BackpackView title={`For ${gameState.persona.name || "the persona"}`} items={gameState.sharedBackpack} maxItems={gameState.maxItems} />
+              {gameState.players.map((p) => (
+                <BackpackView key={p.id} title={p.name} items={gameState.backpacks.find((b) => b.playerName === p.name)?.items ?? []} maxItems={gameState.maxItems} />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* Ended */}
         {gameState.phase === "ended" && (
           <>
-            <div className="tg-round-line">
-              <span className="tg-eyebrow">That’s a wrap · how the group answered</span>
-            </div>
-            <h1 className="tg-topic">Everyone’s answers, side by side</h1>
+            <div className="tg-round-line"><span className="tg-eyebrow">That’s a wrap · thank you</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>Your group’s learning persona</h1>
+            <PersonaOverview persona={gameState.persona} />
+            <div className="tg-round-line" style={{ marginTop: "2.4rem" }}><span className="tg-eyebrow">Reflection · you all ↔ the persona</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the answers compare</h1>
             <FinalBoard players={gameState.players} answers={gameState.answers}
               persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
-            <div className="tg-round-line" style={{ marginTop: "2.4rem" }}>
-              <span className="tg-eyebrow">Your group’s learning persona</span>
+            <div className="tg-round-line" style={{ marginTop: "2.4rem" }}><span className="tg-eyebrow">Backpacks · the persona ↔ everyone</span></div>
+            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>What was packed</h1>
+            <div className="bp-compare">
+              <BackpackView title={`For ${gameState.persona.name || "the persona"}`} items={gameState.sharedBackpack} maxItems={gameState.maxItems} />
+              {gameState.players.map((p) => (
+                <BackpackView key={p.id} title={p.name} items={gameState.backpacks.find((b) => b.playerName === p.name)?.items ?? []} maxItems={gameState.maxItems} />
+              ))}
             </div>
-            <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>{gameState.persona.name || "The persona"}</h1>
-            <PersonaOverview persona={gameState.persona} />
-            <div className="tg-controls">
+            <div className="tg-controls" style={{ marginTop: "1.6rem" }}>
               <div className="buttons">
                 <button className="tg-btn ghost" onClick={room.leave}>Leave session</button>
               </div>

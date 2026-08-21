@@ -130,13 +130,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = storage.getRoomByAnyId(socket.id);
       if (room && storage.choosePersona(room.roomCode, socket.id, optionIndex)) emitGameState(room.roomCode);
     });
-    socket.on("persona_next", () => {
+    socket.on("add_item", (itemId: string) => {
       const room = storage.getRoomByAnyId(socket.id);
-      if (room && storage.personaNext(room.roomCode, socket.id)) emitGameState(room.roomCode);
+      if (room && storage.addItem(room.roomCode, socket.id, itemId)) emitGameState(room.roomCode);
     });
-    socket.on("persona_back", () => {
+    socket.on("remove_item", (itemId: string) => {
       const room = storage.getRoomByAnyId(socket.id);
-      if (room && storage.personaBack(room.roomCode, socket.id)) emitGameState(room.roomCode);
+      if (room && storage.removeItem(room.roomCode, socket.id, itemId)) emitGameState(room.roomCode);
+    });
+    socket.on("flow_next", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.flowNext(room.roomCode, socket.id)) emitGameState(room.roomCode);
+    });
+    socket.on("flow_back", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.flowBack(room.roomCode, socket.id)) emitGameState(room.roomCode);
+    });
+    socket.on("skip", () => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.skip(room.roomCode, socket.id)) emitGameState(room.roomCode);
     });
 
     // Facilitator runs it again with the same group.

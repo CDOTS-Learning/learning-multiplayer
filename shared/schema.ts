@@ -37,19 +37,33 @@ export type Answer = z.infer<typeof answerSchema>;
 export const personaSchema = z.object({
   name: z.string(),
   answers: z.array(z.number()),  // one option index per persona question; -1 = unanswered
-  languageOther: z.string(),     // free text when "Primary Language" = Other
+  otherTexts: z.array(z.string()),// per-question free text, used when the answer is "Other"
   comment: z.string(),           // 12th open field
 });
 export type Persona = z.infer<typeof personaSchema>;
 
+// One player's individual backpack (their own "self" packing).
+export const backpackSchema = z.object({
+  playerName: z.string(),
+  items: z.array(z.string()),
+});
+export type Backpack = z.infer<typeof backpackSchema>;
+
 export type GamePhase =
-  | "waiting"        // Lobby: waiting for players, facilitator can start
-  | "selecting"      // Everyone picks one card (in private)
-  | "revealing"      // Picks are shown; the group discusses
-  | "persona"        // Building the shared learning persona (intake)
-  | "personaReveal"  // "Meet your persona" break card
-  | "personaRound"   // Answering the reflection questions together as the persona
-  | "ended";         // All done — closing summary
+  | "waiting"             // Lobby
+  | "selecting"           // Individual reflection: everyone picks one card (in private)
+  | "revealing"           // Individual reflection: picks are shown; the group discusses
+  | "reflectionSelfBoard" // Overview: everyone's reflection answers, side by side
+  | "backpackDemo"        // Facilitator packs an example backpack
+  | "backpackBuilding1"   // Everyone packs their OWN backpack
+  | "backpackSelfBoard"   // Overview: everyone's backpacks, side by side
+  | "persona"             // Building the shared learning persona (intake)
+  | "personaReveal"       // "Meet your persona" break card
+  | "personaRound"        // Answering the reflection questions together as the persona
+  | "reflectionCompare"   // Overview: the persona's answers vs everyone's
+  | "backpackBuilding2"   // One shared backpack for the persona
+  | "backpackCompare"     // Overview: the persona's backpack vs everyone's
+  | "ended";              // All done — closing summary
 
 export type Role = "player" | "facilitator";
 
@@ -70,6 +84,11 @@ export const gameStateSchema = z.object({
   personaStep: z.number(),         // intake counter: 0 name, 1..N questions, LAST comment
   personaAnswers: z.array(z.number()), // the group's shared answer per reflection question; -1 = none
   personaRoundQ: z.number(),       // which reflection question the persona round is on
+  // ---- Backpack task ----
+  demo: z.array(z.string()),           // the facilitator's demo backpack (item ids)
+  backpacks: z.array(backpackSchema),  // each player's OWN backpack
+  sharedBackpack: z.array(z.string()), // the group's shared persona backpack
+  maxItems: z.number(),
 });
 export type GameState = z.infer<typeof gameStateSchema>;
 
@@ -93,10 +112,13 @@ export interface ClientToServerEvents {
   reveal_now: () => void;
   next_round: () => void;
   restart: () => void;
-  // ---- Shared persona ----
-  take_control: () => void;                 // grab the pen (persona / personaRound)
+  // ---- Shared persona + backpack ----
+  take_control: () => void;                 // grab the pen (persona / personaRound / shared backpack)
   set_persona: (persona: Persona) => void;  // the current driver edits the persona
   choose_persona: (optionIndex: number) => void; // the driver picks the group's answer in personaRound
-  persona_next: () => void;                 // facilitator advances the persona flow
-  persona_back: () => void;                 // facilitator steps back
+  add_item: (itemId: string) => void;       // pack an item (demo / own backpack / shared backpack)
+  remove_item: (itemId: string) => void;    // take an item back out
+  flow_next: () => void;                     // facilitator advances the post-reflection flow
+  flow_back: () => void;                     // facilitator steps back
+  skip: () => void;                          // facilitator skips the current block
 }

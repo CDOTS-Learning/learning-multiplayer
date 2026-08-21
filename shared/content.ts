@@ -175,15 +175,23 @@ export const PERSONA_QUESTIONS: PersonaQuestion[] = [
   },
 ];
 
+// Every persona question ends with "N/A" (not applicable) and an open "Other"
+// choice that reveals a free-text field.
+for (const q of PERSONA_QUESTIONS) {
+  const base = q.options.filter((o) => o !== "Other" && o !== "N/A");
+  q.options = [...base, "N/A", "Other"];
+  q.allowOther = true;
+}
+
 export interface PersonaData {
   name: string;
   answers: number[];      // one option index per PERSONA_QUESTIONS entry; -1 = unanswered
-  languageOther: string;  // free text when "Primary Language" = Other
+  otherTexts: string[];   // per-question free text, used when that question's answer is "Other"
   comment: string;        // 12th open field
 }
 
 export function emptyPersona(): PersonaData {
-  return { name: "", answers: PERSONA_QUESTIONS.map(() => -1), languageOther: "", comment: "" };
+  return { name: "", answers: PERSONA_QUESTIONS.map(() => -1), otherTexts: PERSONA_QUESTIONS.map(() => ""), comment: "" };
 }
 
 export function personaValue(p: PersonaData, i: number): string {
@@ -191,9 +199,43 @@ export function personaValue(p: PersonaData, i: number): string {
   const idx = p.answers?.[i];
   if (idx == null || idx < 0 || idx >= q.options.length) return "";
   const opt = q.options[idx];
-  if (q.allowOther && opt === "Other" && p.languageOther.trim()) return p.languageOther.trim();
+  if (opt === "Other") return (p.otherTexts?.[i] ?? "").trim() || "Other";
   return opt;
 }
+
+// ---------------------------------------------------------------------------
+// Backpack task: a fixed pool of objects to pack (3 things for the journey).
+// ---------------------------------------------------------------------------
+
+export const BACKPACK_FRAMING = {
+  intro: "Imagine you are going on a learning journey.",
+  question: "What three things would you put in your backpack to ensure success?",
+};
+
+export interface BackpackItem {
+  id: string;
+  name: string;
+}
+
+export const ITEMS: BackpackItem[] = [
+  { id: "map", name: "Map" },
+  { id: "compass", name: "Compass" },
+  { id: "flashlight", name: "Flashlight" },
+  { id: "tent", name: "Tent" },
+  { id: "notebook", name: "Notebook" },
+  { id: "star", name: "North star" },
+  { id: "firstaid", name: "First-aid kit" },
+  { id: "binoculars", name: "Binoculars" },
+  { id: "water", name: "Water bottle" },
+  { id: "snacks", name: "Snacks" },
+  { id: "matches", name: "Matches" },
+  { id: "boots", name: "Boots" },
+  { id: "powerbank", name: "Powerbank" },
+];
+
+export const ITEM_BY_ID: Record<string, BackpackItem> = Object.fromEntries(ITEMS.map((i) => [i.id, i]));
+
+export const MAX_ITEMS = 3;
 
 export function personaRows(p: PersonaData): { label: string; value: string }[] {
   return PERSONA_QUESTIONS.map((q, i) => ({ label: q.label, value: personaValue(p, i) }));

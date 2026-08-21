@@ -91,8 +91,11 @@ export function useRoom(roomCode: string, role: Role) {
     takeControl: () => socket.emit("take_control"),
     setPersona: (persona: Persona) => socket.emit("set_persona", persona),
     choosePersona: (i: number) => socket.emit("choose_persona", i),
-    personaNext: () => socket.emit("persona_next"),
-    personaBack: () => socket.emit("persona_back"),
+    addItem: (id: string) => socket.emit("add_item", id),
+    removeItem: (id: string) => socket.emit("remove_item", id),
+    flowNext: () => socket.emit("flow_next"),
+    flowBack: () => socket.emit("flow_back"),
+    skip: () => socket.emit("skip"),
     leave: () => setLocation("/"),
     copyCode: () => {
       try {

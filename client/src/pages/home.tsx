@@ -60,7 +60,7 @@ export default function Home() {
           <h1>Imagine the perfect training exists</h1>
           <blockquote className="tg-quote">
             <em>“{FRAMING.intro}”</em>
-            <span>{FRAMING.note}</span>
+            <span>A short, guided reflection together — one step at a time.</span>
           </blockquote>
         </header>
 
@@ -80,7 +80,7 @@ export default function Home() {
           <section className="tg-door primary">
             <span className="tg-eyebrow">For the facilitator</span>
             <h2>Start a session</h2>
-            <p>Create the room, share the code, and steer the group through the three rounds.</p>
+            <p>Create the room, share the code, and steer the group through the session, step by step.</p>
             <button className="tg-btn block" onClick={handleStart} disabled={busy !== ""}>
               {busy === "create" ? "Creating…" : "Start a session →"}
             </button>
