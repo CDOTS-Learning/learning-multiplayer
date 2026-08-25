@@ -244,6 +244,12 @@ export default function Game() {
             <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the persona’s answers compare</h1>
             <FinalBoard players={gameState.players} answers={gameState.answers}
               persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
+            {isController && (
+              <div className="tg-controls" style={{ marginTop: "1.6rem" }}><div className="buttons">
+                <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+                <button className="tg-btn" onClick={room.flowNext}>Continue →</button>
+              </div></div>
+            )}
           </>
         )}
 

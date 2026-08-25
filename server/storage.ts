@@ -1,5 +1,5 @@
 import type { GameState, Persona, Backpack } from "@shared/schema";
-import { TOTAL_ROUNDS, ROUNDS, PERSONA_QUESTIONS, PERSONA_INTAKE_LAST, emptyPersona, ITEM_BY_ID, MAX_ITEMS } from "@shared/content";
+import { TOTAL_ROUNDS, ROUNDS, PERSONA_QUESTIONS, PERSONA_INTAKE_LAST, emptyPersona, ITEM_BY_ID, MAX_ITEMS, isCustomItem, customItemText, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
 
 const MAX_PLAYERS = 5;
 const MIN_PLAYERS = 2;
@@ -241,11 +241,19 @@ export class MemStorage {
 
   addItem(roomCode: string, byId: string, itemId: string): boolean {
     const room = this.rooms.get(roomCode);
-    if (!room || !ITEM_BY_ID[itemId]) return false;
+    if (!room) return false;
+    let id = itemId;
+    if (isCustomItem(itemId)) {
+      const text = customItemText(itemId).trim().slice(0, CUSTOM_MAX_LEN);
+      if (!text) return false;
+      id = CUSTOM_PREFIX + text;
+    } else if (!ITEM_BY_ID[itemId]) {
+      return false;
+    }
     const target = this.backpackTarget(room, byId);
     if (!target) return false;
-    if (target.includes(itemId) || target.length >= room.maxItems) return false;
-    target.push(itemId);
+    if (target.includes(id) || target.length >= room.maxItems) return false;
+    target.push(id);
     return true;
   }
 
@@ -306,7 +314,9 @@ export class MemStorage {
    *  during the shared persona phases (so players can self-navigate the questions). */
   private canDriveFlow(room: GameState, byId: string): boolean {
     if (room.facilitator?.id === byId) return true;
-    if (room.phase === "persona" || room.phase === "personaReveal" || room.phase === "personaRound") {
+    // The pen-holder self-navigates the whole persona stretch — including the
+    // comparison screen right after, so they're never stuck waiting.
+    if (room.phase === "persona" || room.phase === "personaReveal" || room.phase === "personaRound" || room.phase === "reflectionCompare") {
       return byId === (room.controllerId || this.firstPlayerId(room));
     }
     return false;
