@@ -42,6 +42,15 @@ export const personaSchema = z.object({
 });
 export type Persona = z.infer<typeof personaSchema>;
 
+// One player's OWN persona during the solo build (phase personaSolo), plus a
+// "done" flag they set when they've finished their intake.
+export const playerPersonaSchema = z.object({
+  playerName: z.string(),
+  persona: personaSchema,
+  done: z.boolean(),
+});
+export type PlayerPersona = z.infer<typeof playerPersonaSchema>;
+
 // One player's individual backpack (their own "self" packing).
 export const backpackSchema = z.object({
   playerName: z.string(),
@@ -57,7 +66,8 @@ export type GamePhase =
   | "backpackDemo"        // Facilitator packs an example backpack
   | "backpackBuilding1"   // Everyone packs their OWN backpack
   | "backpackSelfBoard"   // Overview: everyone's backpacks, side by side
-  | "persona"             // Building the shared learning persona (intake)
+  | "personaSolo"         // Each player builds their OWN persona (individually)
+  | "personaAgree"        // The group agrees on ONE final persona, field by field
   | "personaReveal"       // "Meet your persona" break card
   | "personaRound"        // Answering the reflection questions together as the persona
   | "reflectionCompare"   // Overview: the persona's answers vs everyone's
@@ -80,8 +90,9 @@ export const gameStateSchema = z.object({
   maxPlayers: z.number(),
   // ---- Shared learning persona (phases persona / personaReveal / personaRound) ----
   controllerId: z.string(),        // who currently holds the pen (a player, or the facilitator)
-  persona: personaSchema,          // the group's shared persona
-  personaStep: z.number(),         // intake counter: 0 name, 1..N questions, LAST comment
+  persona: personaSchema,          // the group's AGREED final persona (built in personaAgree)
+  personas: z.array(playerPersonaSchema), // each player's OWN persona (built in personaSolo)
+  personaStep: z.number(),         // agreement cursor: 0 name, 1..N questions, LAST comment
   personaAnswers: z.array(z.number()), // the group's shared answer per reflection question; -1 = none
   personaRoundQ: z.number(),       // which reflection question the persona round is on
   // ---- Backpack task ----
@@ -113,8 +124,9 @@ export interface ClientToServerEvents {
   next_round: () => void;
   restart: () => void;
   // ---- Shared persona + backpack ----
-  take_control: () => void;                 // grab the pen (persona / personaRound / shared backpack)
-  set_persona: (persona: Persona) => void;  // the current driver edits the persona
+  take_control: () => void;                 // grab the pen (personaAgree / personaRound / shared backpack)
+  set_persona: (persona: Persona) => void;  // edit your OWN persona (personaSolo) or the shared one (personaAgree driver)
+  persona_ready: (ready: boolean) => void;  // mark your own persona done/undone (personaSolo)
   choose_persona: (optionIndex: number) => void; // the driver picks the group's answer in personaRound
   add_item: (itemId: string) => void;       // pack an item (demo / own backpack / shared backpack)
   remove_item: (itemId: string) => void;    // take an item back out

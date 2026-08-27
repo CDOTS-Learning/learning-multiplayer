@@ -1,4 +1,4 @@
-import type { GameState, Persona, Backpack } from "@shared/schema";
+import type { GameState, Persona, Backpack, PlayerPersona } from "@shared/schema";
 import { TOTAL_ROUNDS, ROUNDS, PERSONA_QUESTIONS, PERSONA_INTAKE_LAST, emptyPersona, ITEM_BY_ID, MAX_ITEMS, isCustomItem, customItemText, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
 
 const MAX_PLAYERS = 5;
@@ -35,6 +35,7 @@ export class MemStorage {
       maxPlayers: MAX_PLAYERS,
       controllerId: "",
       persona: emptyPersona(),
+      personas: [],
       personaStep: 0,
       personaAnswers: new Array(TOTAL_ROUNDS).fill(-1),
       personaRoundQ: 0,
@@ -140,6 +141,7 @@ export class MemStorage {
     room.choices = [];
     room.answers = [];
     room.persona = emptyPersona();
+    room.personas = [];
     room.personaStep = 0;
     room.personaAnswers = new Array(room.totalRounds).fill(-1);
     room.personaRoundQ = 0;
@@ -268,30 +270,90 @@ export class MemStorage {
     return true;
   }
 
-  /** Persona intake: the current driver edits the shared persona. */
-  setPersona(roomCode: string, byId: string, persona: Persona): boolean {
-    const room = this.rooms.get(roomCode);
-    if (!room || room.phase !== "persona") return false;
-    const controller = room.controllerId || this.firstPlayerId(room);
-    if (byId !== controller) return false;
+  /** Validate & clamp an incoming persona against the question set. */
+  private clampPersona(persona: Persona): Persona {
     const answers = PERSONA_QUESTIONS.map((q, i) => {
       const v = Math.floor(Number(persona?.answers?.[i]));
       return Number.isFinite(v) && v >= 0 && v < q.options.length ? v : -1;
     });
     const otherTexts = PERSONA_QUESTIONS.map((_, i) => String(persona?.otherTexts?.[i] ?? "").slice(0, 120));
-    room.persona = {
+    return {
       name: String(persona?.name ?? "").slice(0, 60),
       answers,
       otherTexts,
       comment: String(persona?.comment ?? "").slice(0, 600),
     };
+  }
+
+  /** Get (or create) a player's own persona entry. */
+  private getPlayerPersona(room: GameState, playerName: string): PlayerPersona {
+    let pp = room.personas.find((x) => x.playerName === playerName);
+    if (!pp) {
+      pp = { playerName, persona: emptyPersona(), done: false };
+      room.personas.push(pp);
+    }
+    return pp;
+  }
+
+  /** Seed a persona entry for every current player (on entering personaSolo). */
+  private initPersonas(room: GameState): void {
+    for (const p of room.players) this.getPlayerPersona(room, p.name);
+  }
+
+  /** Are all connected players finished with their solo persona? */
+  private allSoloDone(room: GameState): boolean {
+    const connected = room.players.filter((p) => p.isConnected);
+    if (connected.length === 0) return false;
+    return connected.every((p) => this.getPlayerPersona(room, p.name).done);
+  }
+
+  /** Move from solo building into the field-by-field agreement. */
+  private enterAgreement(room: GameState): void {
+    room.phase = "personaAgree";
+    room.personaStep = 0;
+    room.controllerId = this.firstPlayerId(room);
+    room.persona = emptyPersona();
+  }
+
+  /**
+   * personaSolo: a player edits their OWN persona.
+   * personaAgree: the current driver edits the shared (agreed) persona.
+   */
+  setPersona(roomCode: string, byId: string, persona: Persona): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room) return false;
+    if (room.phase === "personaSolo") {
+      const player = room.players.find((p) => p.id === byId);
+      if (!player) return false; // facilitator doesn't build a persona
+      this.getPlayerPersona(room, player.name).persona = this.clampPersona(persona);
+      return true;
+    }
+    if (room.phase === "personaAgree") {
+      const controller = room.controllerId || this.firstPlayerId(room);
+      if (byId !== controller) return false;
+      room.persona = this.clampPersona(persona);
+      return true;
+    }
+    return false;
+  }
+
+  /** personaSolo: a player marks their own persona done/undone; auto-advance when all are done. */
+  personaReady(roomCode: string, byId: string, ready: boolean): boolean {
+    const room = this.rooms.get(roomCode);
+    if (!room || room.phase !== "personaSolo") return false;
+    const player = room.players.find((p) => p.id === byId);
+    if (!player) return false;
+    const pp = this.getPlayerPersona(room, player.name);
+    if (ready && !pp.persona.name.trim()) return false; // a name is required first
+    pp.done = ready;
+    if (this.allSoloDone(room)) this.enterAgreement(room);
     return true;
   }
 
   /** persona / personaRound / shared backpack: grab the pen (any player or the facilitator). */
   takeControl(roomCode: string, id: string): boolean {
     const room = this.rooms.get(roomCode);
-    if (!room || (room.phase !== "persona" && room.phase !== "personaRound" && room.phase !== "backpackBuilding2")) return false;
+    if (!room || (room.phase !== "personaAgree" && room.phase !== "personaRound" && room.phase !== "backpackBuilding2")) return false;
     const isMember = room.facilitator?.id === id || room.players.some((p) => p.id === id);
     if (!isMember) return false;
     room.controllerId = id;
@@ -314,9 +376,10 @@ export class MemStorage {
    *  during the shared persona phases (so players can self-navigate the questions). */
   private canDriveFlow(room: GameState, byId: string): boolean {
     if (room.facilitator?.id === byId) return true;
-    // The pen-holder self-navigates the whole persona stretch — including the
-    // comparison screen right after, so they're never stuck waiting.
-    if (room.phase === "persona" || room.phase === "personaReveal" || room.phase === "personaRound" || room.phase === "reflectionCompare") {
+    // The pen-holder self-navigates the agreement + persona stretch — including the
+    // comparison screen right after, so they're never stuck waiting. (During
+    // personaSolo everyone is self-paced, so only the facilitator force-advances.)
+    if (room.phase === "personaAgree" || room.phase === "personaReveal" || room.phase === "personaRound" || room.phase === "reflectionCompare") {
       return byId === (room.controllerId || this.firstPlayerId(room));
     }
     return false;
@@ -331,11 +394,15 @@ export class MemStorage {
       case "backpackDemo": room.phase = "backpackBuilding1"; return true;
       case "backpackBuilding1": room.phase = "backpackSelfBoard"; return true;
       case "backpackSelfBoard":
-        room.phase = "persona";
-        room.personaStep = 0;
-        room.controllerId = this.firstPlayerId(room);
+        room.phase = "personaSolo";
+        this.initPersonas(room);
+        room.controllerId = "";
         return true;
-      case "persona":
+      case "personaSolo":
+        // Facilitator force-advances into the agreement even if not everyone is done.
+        this.enterAgreement(room);
+        return true;
+      case "personaAgree":
         if (room.personaStep < PERSONA_INTAKE_LAST) room.personaStep += 1;
         else room.phase = "personaReveal";
         return true;
@@ -362,10 +429,11 @@ export class MemStorage {
       case "backpackDemo": room.phase = "reflectionSelfBoard"; return true;
       case "backpackBuilding1": room.phase = "backpackDemo"; return true;
       case "backpackSelfBoard": room.phase = "backpackBuilding1"; return true;
-      case "persona":
+      case "personaSolo": room.phase = "backpackSelfBoard"; return true;
+      case "personaAgree":
         if (room.personaStep > 0) { room.personaStep -= 1; return true; }
-        room.phase = "backpackSelfBoard"; return true;
-      case "personaReveal": room.phase = "persona"; room.personaStep = PERSONA_INTAKE_LAST; return true;
+        room.phase = "personaSolo"; return true;
+      case "personaReveal": room.phase = "personaAgree"; room.personaStep = PERSONA_INTAKE_LAST; return true;
       case "personaRound":
         if (room.personaRoundQ > 0) { room.personaRoundQ -= 1; return true; }
         room.phase = "personaReveal"; return true;
@@ -386,7 +454,7 @@ export class MemStorage {
       room.phase = "backpackDemo"; return true;
     }
     if (p === "backpackDemo" || p === "backpackBuilding1" || p === "backpackSelfBoard") {
-      room.phase = "persona"; room.personaStep = 0; room.controllerId = this.firstPlayerId(room); return true;
+      room.phase = "personaSolo"; this.initPersonas(room); room.controllerId = ""; return true;
     }
     if (p === "personaRound" || p === "reflectionCompare") {
       room.phase = "backpackBuilding2"; room.controllerId = this.firstPlayerId(room); return true;
@@ -406,6 +474,7 @@ export class MemStorage {
     room.choices = [];
     room.answers = [];
     room.persona = emptyPersona();
+    room.personas = [];
     room.personaStep = 0;
     room.personaAnswers = new Array(room.totalRounds).fill(-1);
     room.personaRoundQ = 0;

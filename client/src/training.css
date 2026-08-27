@@ -158,6 +158,10 @@
 }
 .tg-opt-card.locked{cursor:default;}
 .tg-opt-card.locked:hover{transform:none; box-shadow:none;}
+.tg-opt-card.pd-card{flex-direction:column; gap:.4rem; min-height:110px; padding:1.1rem 1rem; font-size:1.08rem;}
+.tg-opt-card.pd-card.sel{padding:calc(1.1rem - 1px) calc(1rem - 1px);}
+.pd-val{line-height:1.2;}
+.pd-who{font-family:var(--tg-sans); font-size:.68rem; letter-spacing:.02em; color:var(--tg-ink-soft);}
 .tg-lockbar{
   display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
   margin-top:2.8rem; padding-top:1.7rem; border-top:1px solid var(--tg-line);

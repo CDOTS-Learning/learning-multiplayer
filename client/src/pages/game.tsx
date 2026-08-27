@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, emptyPersona } from "@shared/content";
 
 export default function Game() {
   const [, params] = useRoute("/game/:roomCode");
@@ -11,10 +11,12 @@ export default function Game() {
   const { gameState, myId } = room;
 
   const [pending, setPending] = useState<number | null>(null);
+  const [soloStep, setSoloStep] = useState(0);
 
-  // Reset the local selection whenever a new round begins.
+  // Reset local selection / solo cursor whenever the round or phase changes.
   useEffect(() => {
     setPending(null);
+    setSoloStep(0);
   }, [gameState?.round, gameState?.phase]);
 
   if (!gameState) {
@@ -152,24 +154,64 @@ export default function Game() {
           </>
         )}
 
-        {/* Persona intake (the pen-holder types AND navigates; others can take control) */}
-        {gameState.phase === "persona" && (() => {
+        {/* Persona — solo build: each player fills in their OWN persona, self-paced */}
+        {gameState.phase === "personaSolo" && (() => {
+          const mine = gameState.personas.find((pp) => pp.playerName === room.name);
+          const readyCount = gameState.personas.filter((pp) => pp.done && gameState.players.find((p) => p.name === pp.playerName)?.isConnected).length;
+          if (mine?.done) {
+            return (
+              <>
+                <div className="tg-round-line"><span className="tg-eyebrow">Your learning persona · done</span></div>
+                <h1 className="tg-topic" style={{ marginBottom: ".8rem" }}>Thanks — you’re done!</h1>
+                <p className="tg-standing" style={{ marginBottom: "1.4rem" }}>
+                  Waiting for the others… <strong>{readyCount} of {connected} ready</strong>. When everyone’s in, you’ll agree on one shared persona together.
+                </p>
+                <div className="tg-controls"><div className="buttons">
+                  <button className="tg-btn ghost" onClick={() => room.personaReady(false)}>← Edit again</button>
+                </div></div>
+              </>
+            );
+          }
+          const info = personaIntakeInfo(soloStep);
+          const myPersona = mine?.persona ?? emptyPersona();
+          const nextDisabled =
+            info.kind === "personaName" ? myPersona.name.trim() === ""
+            : info.kind === "personaQuestion" ? (myPersona.answers?.[info.index] ?? -1) < 0
+            : false;
+          const atLast = soloStep >= PERSONA_INTAKE_LAST;
+          return (
+            <>
+              <p className="tg-standing" style={{ marginBottom: ".4rem" }}>
+                Build your own learning persona — you’ll compare and agree on one together afterwards. ({readyCount} of {connected} ready)
+              </p>
+              <PersonaIntake persona={myPersona} kind={info.kind} personaIndex={info.index}
+                isController={true} onChange={room.setPersona} />
+              <div className="tg-controls"><div className="buttons">
+                <button className="tg-btn ghost" onClick={() => setSoloStep((s) => Math.max(0, s - 1))} disabled={soloStep === 0}>← Back</button>
+                {atLast
+                  ? <button className="tg-btn" onClick={() => room.personaReady(true)}>I’m done →</button>
+                  : <button className="tg-btn" onClick={() => setSoloStep((s) => s + 1)} disabled={nextDisabled}>Next →</button>}
+              </div></div>
+            </>
+          );
+        })()}
+
+        {/* Persona — agreement: decide one final answer per field, together */}
+        {gameState.phase === "personaAgree" && (() => {
           const info = personaIntakeInfo(gameState.personaStep);
           const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
             || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
-          const nextDisabled =
-            info.kind === "personaName" ? gameState.persona.name.trim() === ""
-            : info.kind === "personaQuestion" ? (gameState.persona.answers?.[info.index] ?? -1) < 0
-            : false;
+          const atLast = gameState.personaStep >= PERSONA_INTAKE_LAST;
           return (
             <>
-              <PersonaIntake persona={gameState.persona} kind={info.kind} personaIndex={info.index}
+              <PersonaDecide kind={info.kind} personaIndex={info.index}
+                personas={gameState.personas} persona={gameState.persona}
                 isController={isController} driverLabel={driver} onChange={room.setPersona} />
               <div className="tg-controls"><div className="buttons">
                 {isController ? (
                   <>
                     <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
-                    <button className="tg-btn" onClick={room.flowNext} disabled={nextDisabled}>Next →</button>
+                    <button className="tg-btn" onClick={room.flowNext}>{atLast ? "Meet the persona →" : "Next →"}</button>
                   </>
                 ) : (
                   <button className="tg-btn" onClick={room.takeControl}>Take control</button>

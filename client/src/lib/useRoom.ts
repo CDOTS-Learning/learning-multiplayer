@@ -92,6 +92,7 @@ export function useRoom(roomCode: string, role: Role) {
     restart: () => socket.emit("restart"),
     takeControl: () => socket.emit("take_control"),
     setPersona: (persona: Persona) => socket.emit("set_persona", persona),
+    personaReady: (ready: boolean) => socket.emit("persona_ready", ready),
     choosePersona: (i: number) => socket.emit("choose_persona", i),
     addItem: (id: string) => socket.emit("add_item", id),
     removeItem: (id: string) => socket.emit("remove_item", id),

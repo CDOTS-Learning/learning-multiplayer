@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Player, Choice, Answer, Persona } from "@shared/schema";
-import { ROUNDS, PERSONA_QUESTIONS, personaRows, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
+import type { Player, Choice, Answer, Persona, PlayerPersona } from "@shared/schema";
+import { ROUNDS, PERSONA_QUESTIONS, personaRows, personaValue, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
 import { ItemIcon } from "@/components/item-icon";
 
 function setAt(arr: number[], i: number, v: number): number[] {
@@ -334,6 +334,127 @@ export function PersonaIntake({
           )}
         </>
       )}
+    </>
+  );
+}
+
+type DecideOption = { value: string; who: string[]; apply: (p: Persona) => Persona };
+
+/**
+ * One screen of the group AGREEMENT: for a single field (name / a question /
+ * the comment) it shows every player's given answer as a clickable option
+ * (only the answers actually given, per decision) plus an "Other" free-text for
+ * a combined/custom final answer. The current pen-holder decides; others watch.
+ */
+export function PersonaDecide({
+  kind, personaIndex, personas, persona, isController, driverLabel, onChange,
+}: {
+  kind: "personaName" | "personaQuestion" | "personaComment";
+  personaIndex: number;
+  personas: PlayerPersona[];
+  persona: Persona;
+  isController: boolean;
+  driverLabel?: string;
+  onChange: (p: Persona) => void;
+}) {
+  const [buf, setBuf] = useState<Persona>(persona);
+  const [seeded, setSeeded] = useState(false);
+  if (isController && !seeded) { setSeeded(true); setBuf(persona); }
+  else if (!isController && seeded) { setSeeded(false); }
+  const view = isController ? buf : persona;
+  const push = (next: Persona) => { setBuf(next); onChange(next); };
+
+  const total = 1 + PERSONA_QUESTIONS.length + 1;
+  const num = kind === "personaName" ? 1 : kind === "personaComment" ? total : 2 + personaIndex;
+  const q = kind === "personaQuestion" ? PERSONA_QUESTIONS[personaIndex] : null;
+  const eyebrow = `Agree together · ${num} of ${total}${q ? ` · ${q.label}` : ""}`;
+  const title =
+    kind === "personaName" ? "Agree on the persona’s name"
+    : kind === "personaComment" ? "Agree on any other comments"
+    : q!.prompt;
+
+  const currentValue =
+    kind === "personaName" ? view.name.trim()
+    : kind === "personaComment" ? view.comment.trim()
+    : personaValue(view, personaIndex);
+
+  // Distinct given answers (+ who gave each) with the setter to apply that choice.
+  const given = new Map<string, DecideOption>();
+  for (const pp of personas) {
+    let value = "";
+    let apply: (p: Persona) => Persona = (p) => p;
+    if (kind === "personaName") {
+      value = pp.persona.name.trim();
+      apply = (p) => ({ ...p, name: value });
+    } else if (kind === "personaComment") {
+      value = pp.persona.comment.trim();
+      apply = (p) => ({ ...p, comment: value });
+    } else {
+      value = personaValue(pp.persona, personaIndex);
+      if (value === "Other") value = "";
+      const optIdx = q!.options.indexOf(value);
+      if (optIdx >= 0) {
+        apply = (p) => ({ ...p, answers: setAt(p.answers, personaIndex, optIdx), otherTexts: setOtherAt(p.otherTexts, personaIndex, "") });
+      } else {
+        const otherIdx = q!.options.indexOf("Other");
+        apply = (p) => ({ ...p, answers: setAt(p.answers, personaIndex, otherIdx), otherTexts: setOtherAt(p.otherTexts, personaIndex, value) });
+      }
+    }
+    if (!value) continue;
+    const hit = given.get(value);
+    if (hit) hit.who.push(pp.playerName);
+    else given.set(value, { value, who: [pp.playerName], apply });
+  }
+  const options = [...given.values()];
+
+  const isCustom = currentValue.length > 0 && !given.has(currentValue);
+  const otherValue = isCustom ? currentValue : "";
+  const setOther = (text: string) => {
+    if (kind === "personaName") push({ ...buf, name: text });
+    else if (kind === "personaComment") push({ ...buf, comment: text });
+    else {
+      const otherIdx = q!.options.indexOf("Other");
+      push({ ...buf, answers: setAt(buf.answers, personaIndex, otherIdx), otherTexts: setOtherAt(buf.otherTexts, personaIndex, text) });
+    }
+  };
+
+  const who = driverLabel || "Someone";
+  return (
+    <>
+      <div className="tg-round-line"><span className="tg-eyebrow">{eyebrow}</span></div>
+      <h1 className="tg-topic">{title}</h1>
+      {!isController && (
+        <p className="tg-standing" style={{ marginBottom: "1rem" }}>
+          <strong>{who}</strong> is deciding — you see the choice live. Take control to decide.
+        </p>
+      )}
+      {options.length === 0 && (
+        <p className="tg-standing" style={{ marginBottom: "1rem" }}>
+          No answers were given here — {isController ? "add one under “Other”." : "the driver can add one under “Other”."}
+        </p>
+      )}
+      <div className="tg-options">
+        {options.map((o) => {
+          const sel = currentValue === o.value;
+          return (
+            <button key={o.value} className={`tg-opt-card pd-card ${sel ? "sel" : ""} ${isController ? "" : "is-live"}`}
+              onClick={isController ? () => push(o.apply(buf)) : undefined} aria-disabled={!isController}>
+              <span className="pd-val">{o.value}</span>
+              <span className="pd-who">{o.who.join(", ")}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="tg-field" style={{ marginTop: "1.1rem", maxWidth: "34rem" }}>
+        <label className="tg-label" htmlFor="pdother">Other — a combined / custom answer{isCustom ? " ✓" : ""}</label>
+        {kind === "personaComment" ? (
+          <textarea id="pdother" className="tg-input" rows={3} placeholder={isController ? "Type a combined answer…" : ""}
+            value={otherValue} maxLength={600} disabled={!isController} onChange={(e) => setOther(e.target.value)} />
+        ) : (
+          <input id="pdother" className="tg-input" placeholder={isController ? "Type a combined answer…" : ""}
+            value={otherValue} maxLength={kind === "personaName" ? 40 : 100} disabled={!isController} onChange={(e) => setOther(e.target.value)} />
+        )}
+      </div>
     </>
   );
 }

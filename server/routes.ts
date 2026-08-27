@@ -127,6 +127,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = storage.getRoomByAnyId(socket.id);
       if (room && storage.setPersona(room.roomCode, socket.id, persona)) emitGameState(room.roomCode);
     });
+    socket.on("persona_ready", (ready) => {
+      const room = storage.getRoomByAnyId(socket.id);
+      if (room && storage.personaReady(room.roomCode, socket.id, !!ready)) emitGameState(room.roomCode);
+    });
     socket.on("choose_persona", (optionIndex: number) => {
       const room = storage.getRoomByAnyId(socket.id);
       if (room && storage.choosePersona(room.roomCode, socket.id, optionIndex)) emitGameState(room.roomCode);

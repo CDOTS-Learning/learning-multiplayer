@@ -1,8 +1,8 @@
 import { type ReactNode } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, personaRows } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows } from "@shared/content";
 import { printHtml, esc } from "@/lib/print";
 import { backpackImageHtml } from "@/lib/backpack-svg";
 
@@ -238,22 +238,50 @@ export default function Facilitator() {
     );
   }
 
-  // ---- Persona intake ----
-  if (phase === "persona") {
-    const info = personaIntakeInfo(gameState.personaStep);
-    const nextDisabled =
-      info.kind === "personaName" ? persona.name.trim() === ""
-      : info.kind === "personaQuestion" ? (persona.answers?.[info.index] ?? -1) < 0
-      : false;
+  // ---- Persona — solo build (everyone fills their own) ----
+  if (phase === "personaSolo") {
+    const readyCount = gameState.personas.filter((pp) => pp.done && gameState.players.find((p) => p.name === pp.playerName)?.isConnected).length;
+    const allReady = readyCount >= connected && connected > 0;
     return shell(
       <>
-        <PersonaIntake persona={persona} kind={info.kind} personaIndex={info.index}
+        <div className="tg-round-line"><span className="tg-eyebrow">Persona · everyone builds their own</span></div>
+        <h1 className="tg-topic" style={{ marginBottom: ".6rem" }}>Building personas</h1>
+        <p className="tg-standing" style={{ marginBottom: "1rem" }}>
+          <strong>{readyCount} of {connected}</strong> ready. When everyone’s done, the group moves to the agreement automatically.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: ".5rem", marginBottom: "1.2rem" }}>
+          {gameState.players.map((p) => {
+            const pp = gameState.personas.find((x) => x.playerName === p.name);
+            return (
+              <span key={p.id} className="tg-count" style={{ opacity: p.isConnected ? 1 : 0.5 }}>
+                {p.name}: {pp?.done ? "done ✓" : "building…"}
+              </span>
+            );
+          })}
+        </div>
+        <div className="tg-controls"><div className="buttons">
+          <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+          <button className="tg-btn" onClick={room.flowNext}>{allReady ? "To the agreement →" : "Agree now (don’t wait) →"}</button>
+          {saveProgressBtn}
+        </div></div>
+      </>
+    );
+  }
+
+  // ---- Persona — agreement (decide one final answer per field) ----
+  if (phase === "personaAgree") {
+    const info = personaIntakeInfo(gameState.personaStep);
+    const atLast = gameState.personaStep >= PERSONA_INTAKE_LAST;
+    return shell(
+      <>
+        <PersonaDecide kind={info.kind} personaIndex={info.index}
+          personas={gameState.personas} persona={persona}
           isController={isController} driverLabel={personaDriver} onChange={room.setPersona} />
-        <p className="tg-standing" style={{ marginTop: "1rem" }}>Driving now: <strong>{personaDriver}</strong>.</p>
+        <p className="tg-standing" style={{ marginTop: "1rem" }}>Deciding now: <strong>{personaDriver}</strong>.</p>
         <div className="tg-controls"><div className="buttons">
           {!isController && <button className="tg-btn" onClick={room.takeControl}>Take control</button>}
           <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
-          <button className="tg-btn" onClick={room.flowNext} disabled={nextDisabled}>Next →</button>
+          <button className="tg-btn" onClick={room.flowNext}>{atLast ? "Meet the persona →" : "Next →"}</button>
           {saveProgressBtn}
         </div></div>
       </>
