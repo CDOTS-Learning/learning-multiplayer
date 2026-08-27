@@ -38,6 +38,7 @@ export class MemStorage {
       personas: [],
       personaStep: 0,
       personaAnswers: new Array(TOTAL_ROUNDS).fill(-1),
+      personaOtherTexts: new Array(TOTAL_ROUNDS).fill(""),
       personaRoundQ: 0,
       demo: [],
       backpacks: [],
@@ -144,6 +145,7 @@ export class MemStorage {
     room.personas = [];
     room.personaStep = 0;
     room.personaAnswers = new Array(room.totalRounds).fill(-1);
+    room.personaOtherTexts = new Array(room.totalRounds).fill("");
     room.personaRoundQ = 0;
     room.controllerId = "";
     room.demo = [];
@@ -162,13 +164,13 @@ export class MemStorage {
     for (const c of room.choices) {
       const player = room.players.find((p) => p.id === c.playerId);
       if (player) {
-        room.answers.push({ round: room.round, playerName: player.name, optionIndex: c.optionIndex });
+        room.answers.push({ round: room.round, playerName: player.name, optionIndex: c.optionIndex, otherText: c.otherText ?? "" });
       }
     }
   }
 
   /** A player picks one option this round. Auto-reveals once everyone has picked. */
-  choose(roomCode: string, playerId: string, optionIndex: number): boolean {
+  choose(roomCode: string, playerId: string, optionIndex: number, otherText?: string): boolean {
     const room = this.rooms.get(roomCode);
     if (!room || room.phase !== "selecting") return false;
 
@@ -178,9 +180,10 @@ export class MemStorage {
     const options = ROUNDS[room.round - 1]?.options;
     if (!options || optionIndex < 0 || optionIndex >= options.length) return false;
 
+    const other = String(otherText ?? "").slice(0, 120);
     const existing = room.choices.find((c) => c.playerId === playerId);
-    if (existing) existing.optionIndex = optionIndex;
-    else room.choices.push({ playerId, optionIndex });
+    if (existing) { existing.optionIndex = optionIndex; existing.otherText = other; }
+    else room.choices.push({ playerId, optionIndex, otherText: other });
 
     // Reveal automatically once every connected player has locked in a pick.
     const connected = room.players.filter((p) => p.isConnected);
@@ -361,7 +364,7 @@ export class MemStorage {
   }
 
   /** personaRound: the driver picks the group's shared answer for the current question. */
-  choosePersona(roomCode: string, byId: string, optionIndex: number): boolean {
+  choosePersona(roomCode: string, byId: string, optionIndex: number, otherText?: string): boolean {
     const room = this.rooms.get(roomCode);
     if (!room || room.phase !== "personaRound") return false;
     const controller = room.controllerId || this.firstPlayerId(room);
@@ -369,6 +372,7 @@ export class MemStorage {
     const options = ROUNDS[room.personaRoundQ]?.options;
     if (!options || optionIndex < 0 || optionIndex >= options.length) return false;
     room.personaAnswers[room.personaRoundQ] = optionIndex;
+    room.personaOtherTexts[room.personaRoundQ] = String(otherText ?? "").slice(0, 120);
     return true;
   }
 
@@ -477,6 +481,7 @@ export class MemStorage {
     room.personas = [];
     room.personaStep = 0;
     room.personaAnswers = new Array(room.totalRounds).fill(-1);
+    room.personaOtherTexts = new Array(room.totalRounds).fill("");
     room.personaRoundQ = 0;
     room.controllerId = "";
     room.demo = [];

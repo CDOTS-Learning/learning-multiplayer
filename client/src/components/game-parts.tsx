@@ -1,7 +1,7 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Player, Choice, Answer, Persona, PlayerPersona } from "@shared/schema";
-import { ROUNDS, PERSONA_QUESTIONS, personaRows, personaValue, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
+import { ROUNDS, PERSONA_QUESTIONS, personaRows, personaValue, roundOptionText, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
 import { ItemIcon } from "@/components/item-icon";
 
 function setAt(arr: number[], i: number, v: number): number[] {
@@ -157,7 +157,7 @@ export function Reveal({
                 return (
                   <span key={c.playerId} className="tg-chip">
                     <Avatar name={p.name} index={idx} />
-                    {p.name}
+                    {p.name}{c.otherText ? `: ${c.otherText}` : ""}
                   </span>
                 );
               })}
@@ -180,21 +180,21 @@ export function FinalBoard({
 }: {
   players: Player[];
   answers: Answer[];
-  persona?: { name: string; answers: number[] };
+  persona?: { name: string; answers: number[]; otherTexts?: string[] };
 }) {
   return (
     <div className="tg-board">
       {ROUNDS.map((r, ri) => {
         const round = ri + 1;
         const pIdx = persona?.answers?.[ri] ?? -1;
-        const pText = pIdx >= 0 ? r.options[pIdx] : null;
+        const pText = pIdx >= 0 ? roundOptionText(ri, pIdx, persona?.otherTexts?.[ri]) : null;
         return (
           <div className="tg-board-row" key={ri}>
             <div className="tg-board-qlabel">{r.topic}</div>
             <div className="tg-board-cells">
               {players.map((p, pi) => {
                 const a = answers.find((x) => x.round === round && x.playerName === p.name);
-                const text = a ? r.options[a.optionIndex] : null;
+                const text = a ? roundOptionText(ri, a.optionIndex, a.otherText) : null;
                 return (
                   <div className={`tg-board-cell col${pi % 3} ${text ? "" : "empty"}`} key={p.id}>
                     <span className="who">{p.name}</span>

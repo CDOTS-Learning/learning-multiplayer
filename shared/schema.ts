@@ -20,6 +20,7 @@ export type Facilitator = z.infer<typeof facilitatorSchema>;
 export const choiceSchema = z.object({
   playerId: z.string(),
   optionIndex: z.number(),
+  otherText: z.string().optional(), // free text used when the chosen option is "Other"
 });
 export type Choice = z.infer<typeof choiceSchema>;
 
@@ -29,6 +30,7 @@ export const answerSchema = z.object({
   round: z.number(),
   playerName: z.string(),
   optionIndex: z.number(),
+  otherText: z.string().optional(),
 });
 export type Answer = z.infer<typeof answerSchema>;
 
@@ -94,6 +96,7 @@ export const gameStateSchema = z.object({
   personas: z.array(playerPersonaSchema), // each player's OWN persona (built in personaSolo)
   personaStep: z.number(),         // agreement cursor: 0 name, 1..N questions, LAST comment
   personaAnswers: z.array(z.number()), // the group's shared answer per reflection question; -1 = none
+  personaOtherTexts: z.array(z.string()), // free text per persona-round question when the answer is "Other"
   personaRoundQ: z.number(),       // which reflection question the persona round is on
   // ---- Backpack task ----
   demo: z.array(z.string()),           // the facilitator's demo backpack (item ids)
@@ -119,7 +122,7 @@ export interface ClientToServerEvents {
     callback: (success: boolean, error?: string) => void
   ) => void;
   start_game: () => void;
-  choose: (optionIndex: number) => void;
+  choose: (optionIndex: number, otherText?: string) => void;
   reveal_now: () => void;
   next_round: () => void;
   restart: () => void;
@@ -127,7 +130,7 @@ export interface ClientToServerEvents {
   take_control: () => void;                 // grab the pen (personaAgree / personaRound / shared backpack)
   set_persona: (persona: Persona) => void;  // edit your OWN persona (personaSolo) or the shared one (personaAgree driver)
   persona_ready: (ready: boolean) => void;  // mark your own persona done/undone (personaSolo)
-  choose_persona: (optionIndex: number) => void; // the driver picks the group's answer in personaRound
+  choose_persona: (optionIndex: number, otherText?: string) => void; // the driver picks the group's answer in personaRound
   add_item: (itemId: string) => void;       // pack an item (demo / own backpack / shared backpack)
   remove_item: (itemId: string) => void;    // take an item back out
   flow_next: () => void;                     // facilitator advances the post-reflection flow

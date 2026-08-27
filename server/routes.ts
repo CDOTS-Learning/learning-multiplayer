@@ -95,10 +95,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     // A player locks in their pick for the round.
-    socket.on("choose", (optionIndex: number) => {
+    socket.on("choose", (optionIndex: number, otherText?: string) => {
       const room = storage.getRoomByPlayerId(socket.id);
       if (!room) return socket.emit("error", "You are not in a session");
-      if (!storage.choose(room.roomCode, socket.id, optionIndex)) {
+      if (!storage.choose(room.roomCode, socket.id, optionIndex, otherText)) {
         return socket.emit("error", "Couldn't record your choice.");
       }
       emitGameState(room.roomCode);
@@ -131,9 +131,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const room = storage.getRoomByAnyId(socket.id);
       if (room && storage.personaReady(room.roomCode, socket.id, !!ready)) emitGameState(room.roomCode);
     });
-    socket.on("choose_persona", (optionIndex: number) => {
+    socket.on("choose_persona", (optionIndex: number, otherText?: string) => {
       const room = storage.getRoomByAnyId(socket.id);
-      if (room && storage.choosePersona(room.roomCode, socket.id, optionIndex)) emitGameState(room.roomCode);
+      if (room && storage.choosePersona(room.roomCode, socket.id, optionIndex, otherText)) emitGameState(room.roomCode);
     });
     socket.on("add_item", (itemId: string) => {
       const room = storage.getRoomByAnyId(socket.id);

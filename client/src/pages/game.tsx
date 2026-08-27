@@ -11,11 +11,13 @@ export default function Game() {
   const { gameState, myId } = room;
 
   const [pending, setPending] = useState<number | null>(null);
+  const [pendingOther, setPendingOther] = useState("");
   const [soloStep, setSoloStep] = useState(0);
 
   // Reset local selection / solo cursor whenever the round or phase changes.
   useEffect(() => {
     setPending(null);
+    setPendingOther("");
     setSoloStep(0);
   }, [gameState?.round, gameState?.phase]);
 
@@ -83,6 +85,14 @@ export default function Game() {
               })}
             </div>
 
+            {!locked && pending === content.options.indexOf("Other") && (
+              <div className="tg-field" style={{ marginTop: "1rem", maxWidth: "34rem" }}>
+                <label className="tg-label" htmlFor="ro">Your own answer</label>
+                <input id="ro" className="tg-input" autoFocus placeholder="Type your own answer…" maxLength={120}
+                  value={pendingOther} onChange={(e) => setPendingOther(e.target.value)} />
+              </div>
+            )}
+
             <div className="tg-lockbar">
               {locked ? (
                 <>
@@ -92,7 +102,9 @@ export default function Game() {
               ) : (
                 <>
                   <span className="tg-hint"><span className="tg-dot-sage" /> Hidden until everyone has chosen</span>
-                  <button className="tg-btn" onClick={() => pending !== null && room.choose(pending)} disabled={pending === null}>
+                  <button className="tg-btn"
+                    onClick={() => pending !== null && room.choose(pending, pending === content.options.indexOf("Other") ? pendingOther : "")}
+                    disabled={pending === null}>
                     Lock in my choice
                   </button>
                 </>
@@ -244,6 +256,8 @@ export default function Game() {
           const q = ROUNDS[gameState.personaRoundQ];
           const isController = myId === gameState.controllerId;
           const sel = gameState.personaAnswers[gameState.personaRoundQ] ?? -1;
+          const otherIdx = q.options.indexOf("Other");
+          const otherText = gameState.personaOtherTexts?.[gameState.personaRoundQ] ?? "";
           const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
             || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
           return (
@@ -258,11 +272,22 @@ export default function Game() {
               <div className="tg-options">
                 {q.options.map((opt, i) => (
                   <button key={i} className={`tg-opt-card ${sel === i ? "sel" : ""} ${isController ? "" : "is-live"}`}
-                    onClick={isController ? () => room.choosePersona(i) : undefined} aria-disabled={!isController}>
+                    onClick={isController ? () => room.choosePersona(i, i === otherIdx ? otherText : "") : undefined} aria-disabled={!isController}>
                     {opt}
                   </button>
                 ))}
               </div>
+              {sel === otherIdx && (
+                isController ? (
+                  <div className="tg-field" style={{ marginTop: "1rem", maxWidth: "34rem" }}>
+                    <label className="tg-label" htmlFor="pro">Your own answer</label>
+                    <input id="pro" className="tg-input" autoFocus placeholder="Type the group’s answer…" maxLength={120}
+                      value={otherText} onChange={(e) => room.choosePersona(otherIdx, e.target.value)} />
+                  </div>
+                ) : otherText ? (
+                  <p className="tg-standing" style={{ marginTop: ".8rem" }}>Their answer: <strong>{otherText}</strong></p>
+                ) : null
+              )}
               <div className="tg-controls"><div className="buttons">
                 {isController ? (
                   <>
@@ -285,7 +310,7 @@ export default function Game() {
             <div className="tg-round-line"><span className="tg-eyebrow">You all ↔ {personaName}</span></div>
             <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the persona’s answers compare</h1>
             <FinalBoard players={gameState.players} answers={gameState.answers}
-              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
+              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers, otherTexts: gameState.personaOtherTexts }} />
             {isController && (
               <div className="tg-controls" style={{ marginTop: "1.6rem" }}><div className="buttons">
                 <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
@@ -343,7 +368,7 @@ export default function Game() {
             <div className="tg-round-line" style={{ marginTop: "2.4rem" }}><span className="tg-eyebrow">Reflection · you all ↔ the persona</span></div>
             <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>How the answers compare</h1>
             <FinalBoard players={gameState.players} answers={gameState.answers}
-              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers }} />
+              persona={{ name: gameState.persona.name, answers: gameState.personaAnswers, otherTexts: gameState.personaOtherTexts }} />
             <div className="tg-round-line" style={{ marginTop: "2.4rem" }}><span className="tg-eyebrow">Backpacks · the persona ↔ everyone</span></div>
             <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>What was packed</h1>
             <div className="bp-compare">
