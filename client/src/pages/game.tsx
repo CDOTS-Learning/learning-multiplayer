@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
 import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, emptyPersona } from "@shared/content";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, emptyPersona, roundTopic, roundOptions } from "@shared/content";
 
 export default function Game() {
   const [, params] = useRoute("/game/:roomCode");
@@ -253,10 +253,10 @@ export default function Game() {
 
         {/* Persona round (answer together as the persona) */}
         {gameState.phase === "personaRound" && (() => {
-          const q = ROUNDS[gameState.personaRoundQ];
+          const pOpts = roundOptions(gameState.personaRoundQ, 1);
           const isController = myId === gameState.controllerId;
           const sel = gameState.personaAnswers[gameState.personaRoundQ] ?? -1;
-          const otherIdx = q.options.indexOf("Other");
+          const otherIdx = pOpts.indexOf("Other");
           const otherText = gameState.personaOtherTexts?.[gameState.personaRoundQ] ?? "";
           const driver = gameState.players.find((p) => p.id === gameState.controllerId)?.name
             || (gameState.controllerId === gameState.facilitator?.id ? "The facilitator" : "Someone");
@@ -265,12 +265,12 @@ export default function Game() {
               <div className="tg-round-line">
                 <span className="tg-eyebrow">As {gameState.persona.name || "the persona"} · Question {gameState.personaRoundQ + 1} of {gameState.totalRounds}</span>
               </div>
-              <h1 className="tg-topic">{q.topic}</h1>
+              <h1 className="tg-topic">{roundTopic(gameState.personaRoundQ, 1)}</h1>
               {!isController && (
                 <p className="tg-standing" style={{ marginBottom: "1rem" }}><strong>{driver}</strong> is answering for the group — take control to choose.</p>
               )}
               <div className="tg-options">
-                {q.options.map((opt, i) => (
+                {pOpts.map((opt, i) => (
                   <button key={i} className={`tg-opt-card ${sel === i ? "sel" : ""} ${isController ? "" : "is-live"}`}
                     onClick={isController ? () => room.choosePersona(i, i === otherIdx ? otherText : "") : undefined} aria-disabled={!isController}>
                     {opt}

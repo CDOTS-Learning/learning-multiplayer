@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
 import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText } from "@shared/content";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText, roundTopic, roundOptions } from "@shared/content";
 import { printHtml, esc } from "@/lib/print";
 import { backpackImageHtml } from "@/lib/backpack-svg";
 
@@ -44,14 +44,14 @@ export default function Facilitator() {
   const boardDoc = () => {
     const players = gameState.players;
     const header = players.map((p) => `<th>${esc(p.name)}</th>`).join("") + `<th>${esc(persona.name || "Persona")}</th>`;
-    const rows = ROUNDS.map((r, ri) => {
+    const rows = ROUNDS.map((_r, ri) => {
       const round = ri + 1;
       const cells = players.map((p) => {
         const a = gameState.answers.find((x) => x.round === round && x.playerName === p.name);
-        return `<td>${esc((a ? roundOptionText(ri, a.optionIndex, a.otherText) : null) ?? "—")}</td>`;
+        return `<td>${esc((a ? roundOptionText(ri, 0, a.optionIndex, a.otherText) : null) ?? "—")}</td>`;
       }).join("");
       const pIdx = gameState.personaAnswers?.[ri] ?? -1;
-      return `<tr><td class="q">${esc(r.topic)}</td>${cells}<td>${esc((pIdx >= 0 ? roundOptionText(ri, pIdx, gameState.personaOtherTexts?.[ri]) : null) ?? "—")}</td></tr>`;
+      return `<tr><td class="q">${esc(roundTopic(ri, 0))}</td>${cells}<td>${esc((pIdx >= 0 ? roundOptionText(ri, 1, pIdx, gameState.personaOtherTexts?.[ri]) : null) ?? "—")}</td></tr>`;
     }).join("");
     return `<p class="k">Reflection</p><h1>How the group answered</h1>
       <table><thead><tr><th></th>${header}</tr></thead><tbody>${rows}</tbody></table>
@@ -306,9 +306,9 @@ export default function Facilitator() {
 
   // ---- Persona round (collaborative) ----
   if (phase === "personaRound") {
-    const q = ROUNDS[gameState.personaRoundQ];
+    const pOpts = roundOptions(gameState.personaRoundQ, 1);
     const sel = gameState.personaAnswers[gameState.personaRoundQ] ?? -1;
-    const otherIdx = q.options.indexOf("Other");
+    const otherIdx = pOpts.indexOf("Other");
     const otherText = gameState.personaOtherTexts?.[gameState.personaRoundQ] ?? "";
     const isLastPersonaQ = gameState.personaRoundQ >= gameState.totalRounds - 1;
     return shell(
@@ -316,10 +316,10 @@ export default function Facilitator() {
         <div className="tg-round-line">
           <span className="tg-eyebrow">As {personaName} · Question {gameState.personaRoundQ + 1} of {gameState.totalRounds}</span>
         </div>
-        <h1 className="tg-topic">{q.topic}</h1>
+        <h1 className="tg-topic">{roundTopic(gameState.personaRoundQ, 1)}</h1>
         <p className="tg-standing" style={{ marginBottom: "1rem" }}>Driving now: <strong>{personaDriver}</strong>. The group answers together.</p>
         <div className="tg-options">
-          {q.options.map((opt, i) => (
+          {pOpts.map((opt, i) => (
             <button key={i} className={`tg-opt-card ${sel === i ? "sel" : ""} ${isController ? "" : "is-live"}`}
               onClick={isController ? () => room.choosePersona(i, i === otherIdx ? otherText : "") : undefined} aria-disabled={!isController}>
               {opt}
