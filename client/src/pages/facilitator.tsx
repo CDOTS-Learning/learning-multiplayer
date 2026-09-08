@@ -2,7 +2,7 @@ import { type ReactNode } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
 import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText, roundTopic, roundOptions } from "@shared/content";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText, roundTopic, roundTopicNeutral, roundOptions } from "@shared/content";
 import { printHtml, esc } from "@/lib/print";
 import { backpackImageHtml } from "@/lib/backpack-svg";
 
@@ -51,7 +51,7 @@ export default function Facilitator() {
         return `<td>${esc((a ? roundOptionText(ri, 0, a.optionIndex, a.otherText) : null) ?? "—")}</td>`;
       }).join("");
       const pIdx = gameState.personaAnswers?.[ri] ?? -1;
-      return `<tr><td class="q">${esc(roundTopic(ri, 0))}</td>${cells}<td>${esc((pIdx >= 0 ? roundOptionText(ri, 1, pIdx, gameState.personaOtherTexts?.[ri]) : null) ?? "—")}</td></tr>`;
+      return `<tr><td class="q">${esc(roundTopicNeutral(ri))}</td>${cells}<td>${esc((pIdx >= 0 ? roundOptionText(ri, 1, pIdx, gameState.personaOtherTexts?.[ri]) : null) ?? "—")}</td></tr>`;
     }).join("");
     return `<p class="k">Reflection</p><h1>How the group answered</h1>
       <table><thead><tr><th></th>${header}</tr></thead><tbody>${rows}</tbody></table>
