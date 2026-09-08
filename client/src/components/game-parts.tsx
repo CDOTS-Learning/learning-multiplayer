@@ -1,11 +1,11 @@
 import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Player, Choice, Answer, Persona, PlayerPersona } from "@shared/schema";
-import { ROUNDS, PERSONA_QUESTIONS, personaRows, personaValue, roundOptionText, roundTopicNeutral, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
+import { ROUNDS, PERSONA_QUESTIONS, isOtherOption, personaRows, personaValue, roundOptionText, roundTopicNeutral, ITEMS, itemName, CUSTOM_PREFIX, CUSTOM_MAX_LEN } from "@shared/content";
 import { ItemIcon } from "@/components/item-icon";
 
-function setAt(arr: number[], i: number, v: number): number[] {
-  const next = PERSONA_QUESTIONS.map((_, k) => arr?.[k] ?? -1);
+function setAt(arr: number[][], i: number, v: number[]): number[][] {
+  const next = PERSONA_QUESTIONS.map((_, k) => arr?.[k] ?? []);
   next[i] = v;
   return next;
 }
@@ -306,22 +306,37 @@ export function PersonaIntake({
         )
       )}
 
-      {kind === "personaQuestion" && q && (
+      {kind === "personaQuestion" && q && (() => {
+        const sel = view.answers?.[personaIndex] ?? [];
+        const full = sel.length >= q.maxSelect;
+        const otherPicked = sel.some((idx) => isOtherOption(q.options[idx] ?? ""));
+        const toggle = (i: number) => {
+          const cur = buf.answers?.[personaIndex] ?? [];
+          const next = cur.includes(i)
+            ? cur.filter((x) => x !== i)
+            : cur.length >= q.maxSelect ? cur : [...cur, i];
+          push({ ...buf, answers: setAt(buf.answers, personaIndex, next) });
+        };
+        return (
         <>
           {liveNote}
+          {q.maxSelect > 1 && (
+            <p className="tg-standing" style={{ marginBottom: ".9rem" }}>Select up to {q.maxSelect}.</p>
+          )}
           <div className="tg-options">
             {q.options.map((opt, i) => {
-              const sel = (view.answers?.[personaIndex] ?? -1) === i;
+              const on = sel.includes(i);
+              const locked = !on && full;
               return (
-                <button key={i} className={`tg-opt-card ${sel ? "sel" : ""} ${isController ? "" : "is-live"}`}
-                  onClick={isController ? () => push({ ...buf, answers: setAt(buf.answers, personaIndex, i) }) : undefined}
-                  aria-disabled={!isController}>
+                <button key={i} className={`tg-opt-card ${on ? "sel" : ""} ${isController ? "" : "is-live"} ${locked ? "pick-full" : ""}`}
+                  onClick={isController && !locked ? () => toggle(i) : undefined}
+                  aria-disabled={!isController || locked}>
                   {opt}
                 </button>
               );
             })}
           </div>
-          {q.options[(view.answers?.[personaIndex] ?? -1)] === "Other" && (
+          {otherPicked && (
             isController ? (
               <div className="tg-field" style={{ marginTop: "1rem", maxWidth: "28rem" }}>
                 <label className="tg-label" htmlFor="lo">Your own answer</label>
@@ -333,7 +348,8 @@ export function PersonaIntake({
             ) : null
           )}
         </>
-      )}
+        );
+      })()}
     </>
   );
 }
@@ -372,73 +388,127 @@ export function PersonaDecide({
     kind === "personaName" ? "Agree on the persona’s name"
     : kind === "personaComment" ? "Agree on any other comments"
     : q!.prompt;
-
-  const currentValue =
-    kind === "personaName" ? view.name.trim()
-    : kind === "personaComment" ? view.comment.trim()
-    : personaValue(view, personaIndex);
-
-  // Distinct given answers (+ who gave each) with the setter to apply that choice.
-  const given = new Map<string, DecideOption>();
-  for (const pp of personas) {
-    let value = "";
-    let apply: (p: Persona) => Persona = (p) => p;
-    if (kind === "personaName") {
-      value = pp.persona.name.trim();
-      apply = (p) => ({ ...p, name: value });
-    } else if (kind === "personaComment") {
-      value = pp.persona.comment.trim();
-      apply = (p) => ({ ...p, comment: value });
-    } else {
-      value = personaValue(pp.persona, personaIndex);
-      if (value === "Other") value = "";
-      const optIdx = q!.options.indexOf(value);
-      if (optIdx >= 0) {
-        apply = (p) => ({ ...p, answers: setAt(p.answers, personaIndex, optIdx), otherTexts: setOtherAt(p.otherTexts, personaIndex, "") });
-      } else {
-        const otherIdx = q!.options.indexOf("Other");
-        apply = (p) => ({ ...p, answers: setAt(p.answers, personaIndex, otherIdx), otherTexts: setOtherAt(p.otherTexts, personaIndex, value) });
-      }
-    }
-    if (!value) continue;
-    const hit = given.get(value);
-    if (hit) hit.who.push(pp.playerName);
-    else given.set(value, { value, who: [pp.playerName], apply });
-  }
-  const options = [...given.values()];
-
-  const isCustom = currentValue.length > 0 && !given.has(currentValue);
-  const otherValue = isCustom ? currentValue : "";
-  const setOther = (text: string) => {
-    if (kind === "personaName") push({ ...buf, name: text });
-    else if (kind === "personaComment") push({ ...buf, comment: text });
-    else {
-      const otherIdx = q!.options.indexOf("Other");
-      push({ ...buf, answers: setAt(buf.answers, personaIndex, otherIdx), otherTexts: setOtherAt(buf.otherTexts, personaIndex, text) });
-    }
-  };
-
-  const who = driverLabel || "Someone";
-  return (
+  const whoLabel = driverLabel || "Someone";
+  const noneNote = (
+    <p className="tg-standing" style={{ marginBottom: "1rem" }}>
+      No answers were given here — {isController ? "add one under “Other”." : "the driver can add one under “Other”."}
+    </p>
+  );
+  const head = (
     <>
       <div className="tg-round-line"><span className="tg-eyebrow">{eyebrow}</span></div>
       <h1 className="tg-topic">{title}</h1>
       {!isController && (
         <p className="tg-standing" style={{ marginBottom: "1rem" }}>
-          <strong>{who}</strong> is deciding — you see the choice live. Take control to decide.
+          <strong>{whoLabel}</strong> is deciding — you see the choice live. Take control to decide.
         </p>
       )}
-      {options.length === 0 && (
-        <p className="tg-standing" style={{ marginBottom: "1rem" }}>
-          No answers were given here — {isController ? "add one under “Other”." : "the driver can add one under “Other”."}
-        </p>
-      )}
+    </>
+  );
+
+  // ---- A question: agree on up to q.maxSelect of the answers people gave ----
+  if (q) {
+    const otherIdx = q.options.findIndex((o) => isOtherOption(o));
+    const sel = view.answers?.[personaIndex] ?? [];
+    const full = sel.length >= q.maxSelect;
+    const curOther = view.otherTexts?.[personaIndex] ?? "";
+
+    const given = new Map<string, { value: string; optionIndex: number; otherText: string; who: string[] }>();
+    for (const pp of personas) {
+      for (const idx of pp.persona.answers?.[personaIndex] ?? []) {
+        const opt = q.options[idx];
+        if (!opt) continue;
+        const other = isOtherOption(opt);
+        const txt = other ? (pp.persona.otherTexts?.[personaIndex] ?? "").trim() : "";
+        const value = other ? (txt || opt) : opt;
+        const hit = given.get(value);
+        if (hit) { if (!hit.who.includes(pp.playerName)) hit.who.push(pp.playerName); }
+        else given.set(value, { value, optionIndex: idx, otherText: txt, who: [pp.playerName] });
+      }
+    }
+    const options = [...given.values()];
+    const isOn = (o: { optionIndex: number; otherText: string }) =>
+      sel.includes(o.optionIndex) &&
+      (o.optionIndex !== otherIdx || curOther.trim() === o.otherText);
+
+    const toggle = (o: { optionIndex: number; otherText: string }) => {
+      const cur = buf.answers?.[personaIndex] ?? [];
+      const on = isOn(o);
+      let next = cur;
+      if (on) next = cur.filter((x) => x !== o.optionIndex);
+      else if (!cur.includes(o.optionIndex)) {
+        if (cur.length >= q.maxSelect) return;
+        next = [...cur, o.optionIndex];
+      }
+      const texts = o.optionIndex === otherIdx
+        ? setOtherAt(buf.otherTexts, personaIndex, on ? "" : o.otherText)
+        : buf.otherTexts;
+      push({ ...buf, answers: setAt(buf.answers, personaIndex, next), otherTexts: texts });
+    };
+
+    const otherIsCustom =
+      sel.includes(otherIdx) && !options.some((o) => o.optionIndex === otherIdx && o.otherText === curOther.trim());
+    const setOtherText = (text: string) => {
+      const cur = buf.answers?.[personaIndex] ?? [];
+      const next = cur.includes(otherIdx) ? cur : (cur.length >= q.maxSelect ? cur : [...cur, otherIdx]);
+      push({ ...buf, answers: setAt(buf.answers, personaIndex, next), otherTexts: setOtherAt(buf.otherTexts, personaIndex, text) });
+    };
+
+    return (
+      <>
+        {head}
+        {q.maxSelect > 1 && (
+          <p className="tg-standing" style={{ marginBottom: ".9rem" }}>Agree on up to {q.maxSelect}.</p>
+        )}
+        {options.length === 0 && noneNote}
+        <div className="tg-options">
+          {options.map((o) => {
+            const on = isOn(o);
+            const locked = !on && full;
+            return (
+              <button key={o.value} className={`tg-opt-card pd-card ${on ? "sel" : ""} ${isController ? "" : "is-live"} ${locked ? "pick-full" : ""}`}
+                onClick={isController && !locked ? () => toggle(o) : undefined} aria-disabled={!isController || locked}>
+                <span className="pd-val">{o.value}</span>
+                <span className="pd-who">{o.who.join(", ")}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="tg-field" style={{ marginTop: "1.1rem", maxWidth: "34rem" }}>
+          <label className="tg-label" htmlFor="pdother">Other — a combined / custom answer{otherIsCustom ? " ✓" : ""}</label>
+          <input id="pdother" className="tg-input" placeholder={isController ? "Type a combined answer…" : ""}
+            value={curOther} maxLength={100} disabled={!isController} onChange={(e) => setOtherText(e.target.value)} />
+        </div>
+      </>
+    );
+  }
+
+  // ---- Name / comment: one free-text value ----
+  const currentValue = kind === "personaName" ? view.name.trim() : view.comment.trim();
+  const givenText = new Map<string, { value: string; who: string[] }>();
+  for (const pp of personas) {
+    const value = (kind === "personaName" ? pp.persona.name : pp.persona.comment).trim();
+    if (!value) continue;
+    const hit = givenText.get(value);
+    if (hit) hit.who.push(pp.playerName);
+    else givenText.set(value, { value, who: [pp.playerName] });
+  }
+  const textOptions = [...givenText.values()];
+  const apply = (text: string) =>
+    kind === "personaName" ? push({ ...buf, name: text }) : push({ ...buf, comment: text });
+  const isCustom = currentValue.length > 0 && !givenText.has(currentValue);
+  const otherValue = isCustom ? currentValue : "";
+
+  return (
+    <>
+      {head}
+      {textOptions.length === 0 && noneNote}
       <div className="tg-options">
-        {options.map((o) => {
-          const sel = currentValue === o.value;
+        {textOptions.map((o) => {
+          const on = currentValue === o.value;
           return (
-            <button key={o.value} className={`tg-opt-card pd-card ${sel ? "sel" : ""} ${isController ? "" : "is-live"}`}
-              onClick={isController ? () => push(o.apply(buf)) : undefined} aria-disabled={!isController}>
+            <button key={o.value} className={`tg-opt-card pd-card ${on ? "sel" : ""} ${isController ? "" : "is-live"}`}
+              onClick={isController ? () => apply(o.value) : undefined} aria-disabled={!isController}>
               <span className="pd-val">{o.value}</span>
               <span className="pd-who">{o.who.join(", ")}</span>
             </button>
@@ -449,10 +519,10 @@ export function PersonaDecide({
         <label className="tg-label" htmlFor="pdother">Other — a combined / custom answer{isCustom ? " ✓" : ""}</label>
         {kind === "personaComment" ? (
           <textarea id="pdother" className="tg-input" rows={3} placeholder={isController ? "Type a combined answer…" : ""}
-            value={otherValue} maxLength={600} disabled={!isController} onChange={(e) => setOther(e.target.value)} />
+            value={otherValue} maxLength={600} disabled={!isController} onChange={(e) => apply(e.target.value)} />
         ) : (
           <input id="pdother" className="tg-input" placeholder={isController ? "Type a combined answer…" : ""}
-            value={otherValue} maxLength={kind === "personaName" ? 40 : 100} disabled={!isController} onChange={(e) => setOther(e.target.value)} />
+            value={otherValue} maxLength={40} disabled={!isController} onChange={(e) => apply(e.target.value)} />
         )}
       </div>
     </>

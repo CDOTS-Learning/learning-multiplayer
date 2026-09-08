@@ -188,7 +188,7 @@ export default function Game() {
           const myPersona = mine?.persona ?? emptyPersona();
           const nextDisabled =
             info.kind === "personaName" ? myPersona.name.trim() === ""
-            : info.kind === "personaQuestion" ? (myPersona.answers?.[info.index] ?? -1) < 0
+            : info.kind === "personaQuestion" ? (myPersona.answers?.[info.index] ?? []).length === 0
             : false;
           const atLast = soloStep >= PERSONA_INTAKE_LAST;
           return (

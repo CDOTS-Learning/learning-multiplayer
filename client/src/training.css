@@ -157,6 +157,9 @@
   background:var(--tg-accent); color:var(--tg-accent-ink); display:grid; place-items:center; font-size:.8rem; font-family:var(--tg-sans);
 }
 .tg-opt-card.locked{cursor:default;}
+.tg-opt-card.pick-full{opacity:.42; cursor:not-allowed;}
+.tg-opt-card.pick-full:hover{transform:none; box-shadow:none;}
+
 .tg-opt-card.locked:hover{transform:none; box-shadow:none;}
 .tg-opt-card.pd-card{flex-direction:column; gap:.4rem; min-height:110px; padding:1.1rem 1rem; font-size:1.08rem;}
 .tg-opt-card.pd-card.sel{padding:calc(1.1rem - 1px) calc(1rem - 1px);}
