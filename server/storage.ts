@@ -389,7 +389,7 @@ export class MemStorage {
     // The pen-holder self-navigates the agreement + persona stretch — including the
     // comparison screen right after, so they're never stuck waiting. (During
     // personaSolo everyone is self-paced, so only the facilitator force-advances.)
-    if (room.phase === "personaAgree" || room.phase === "personaReveal" || room.phase === "personaRound" || room.phase === "reflectionCompare") {
+    if (room.phase === "personaAgree" || room.phase === "personaReveal" || room.phase === "personaDiscuss" || room.phase === "personaRound" || room.phase === "reflectionCompare") {
       return byId === (room.controllerId || this.firstPlayerId(room));
     }
     return false;
@@ -416,7 +416,8 @@ export class MemStorage {
         if (room.personaStep < PERSONA_INTAKE_LAST) room.personaStep += 1;
         else room.phase = "personaReveal";
         return true;
-      case "personaReveal": room.phase = "personaRound"; room.personaRoundQ = 0; return true;
+      case "personaReveal": room.phase = "personaDiscuss"; return true;
+      case "personaDiscuss": room.phase = "personaRound"; room.personaRoundQ = 0; return true;
       case "personaRound":
         if (room.personaRoundQ < room.totalRounds - 1) room.personaRoundQ += 1;
         else room.phase = "reflectionCompare";
@@ -444,9 +445,10 @@ export class MemStorage {
         if (room.personaStep > 0) { room.personaStep -= 1; return true; }
         room.phase = "personaSolo"; return true;
       case "personaReveal": room.phase = "personaAgree"; room.personaStep = PERSONA_INTAKE_LAST; return true;
+      case "personaDiscuss": room.phase = "personaReveal"; return true;
       case "personaRound":
         if (room.personaRoundQ > 0) { room.personaRoundQ -= 1; return true; }
-        room.phase = "personaReveal"; return true;
+        room.phase = "personaDiscuss"; return true;
       case "reflectionCompare": room.phase = "personaRound"; room.personaRoundQ = room.totalRounds - 1; return true;
       case "backpackBuilding2": room.phase = "reflectionCompare"; return true;
       case "backpackCompare": room.phase = "backpackBuilding2"; return true;
@@ -472,7 +474,7 @@ export class MemStorage {
     if (p === "backpackBuilding2" || p === "backpackCompare") {
       room.phase = "ended"; return true;
     }
-    return false; // persona / personaReveal are not skippable
+    return false; // persona / personaReveal / personaDiscuss are not skippable
   }
 
   /** Facilitator can run the session again with the same group. */

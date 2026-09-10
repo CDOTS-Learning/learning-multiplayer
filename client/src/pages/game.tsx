@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, emptyPersona, roundTopic, roundOptions } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaIntake, PersonaDecide, PersonaOverview, BackpackScene, BackpackView, DiscussCard } from "@/components/game-parts";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, PERSONA_DISCUSSION, personaIntakeInfo, PERSONA_INTAKE_LAST, emptyPersona, roundTopic, roundOptions } from "@shared/content";
 
 export default function Game() {
   const [, params] = useRoute("/game/:roomCode");
@@ -242,6 +242,19 @@ export default function Game() {
               Next, you’ll answer the same three questions together as {gameState.persona.name || "them"}.
             </p>
             <PersonaOverview persona={gameState.persona} />
+            {isController && (
+              <div className="tg-controls"><div className="buttons">
+                <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+                <button className="tg-btn" onClick={room.flowNext}>Next →</button>
+              </div></div>
+            )}
+          </>
+        )}
+
+        {/* Discuss out loud (one question, no input) */}
+        {gameState.phase === "personaDiscuss" && (
+          <>
+            <DiscussCard eyebrow={`Discuss together · ${gameState.persona.name || "your persona"}`} question={PERSONA_DISCUSSION} />
             {isController && (
               <div className="tg-controls"><div className="buttons">
                 <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>

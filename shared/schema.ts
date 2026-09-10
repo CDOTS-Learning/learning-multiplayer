@@ -71,6 +71,7 @@ export type GamePhase =
   | "personaSolo"         // Each player builds their OWN persona (individually)
   | "personaAgree"        // The group agrees on ONE final persona, field by field
   | "personaReveal"       // "Meet your persona" break card
+  | "personaDiscuss"      // one question to discuss out loud (no input)
   | "personaRound"        // Answering the reflection questions together as the persona
   | "reflectionCompare"   // Overview: the persona's answers vs everyone's
   | "backpackBuilding2"   // One shared backpack for the persona

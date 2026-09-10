@@ -1,8 +1,8 @@
 import { type ReactNode } from "react";
 import { useRoute } from "wouter";
 import { useRoom } from "@/lib/useRoom";
-import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaDecide, PersonaOverview, BackpackScene, BackpackView } from "@/components/game-parts";
-import { FRAMING, ROUNDS, BACKPACK_FRAMING, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText, roundTopic, roundTopicNeutral, roundOptions } from "@shared/content";
+import { RoomBar, Roster, Reveal, Pips, FinalBoard, PersonaDecide, PersonaOverview, BackpackScene, BackpackView, DiscussCard } from "@/components/game-parts";
+import { FRAMING, ROUNDS, BACKPACK_FRAMING, PERSONA_DISCUSSION, personaIntakeInfo, PERSONA_INTAKE_LAST, personaRows, roundOptionText, roundTopic, roundTopicNeutral, roundOptions } from "@shared/content";
 import { printHtml, esc } from "@/lib/print";
 import { backpackImageHtml } from "@/lib/backpack-svg";
 
@@ -295,6 +295,20 @@ export default function Facilitator() {
         <div className="tg-round-line"><span className="tg-eyebrow">Meet the learning persona</span></div>
         <h1 className="tg-topic" style={{ marginBottom: "1.4rem" }}>{persona.name || "The learning persona"}</h1>
         <PersonaOverview persona={persona} />
+        <div className="tg-controls"><div className="buttons">
+          <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
+          <button className="tg-btn" onClick={room.flowNext}>Next →</button>
+          {saveProgressBtn}
+        </div></div>
+      </>
+    );
+  }
+
+  // ---- Discuss out loud (one question, no input) ----
+  if (phase === "personaDiscuss") {
+    return shell(
+      <>
+        <DiscussCard eyebrow={`Discuss together · ${persona.name || "the persona"}`} question={PERSONA_DISCUSSION} />
         <div className="tg-controls"><div className="buttons">
           <button className="tg-btn ghost" onClick={room.flowBack}>← Back</button>
           <button className="tg-btn" onClick={room.flowNext}>Answer as the persona →</button>

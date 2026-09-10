@@ -315,6 +315,13 @@ export const PERSONA_QUESTIONS: PersonaQuestion[] = [
   },
 ];
 
+/**
+ * Shown on its own screen right after the persona card, for everyone. It is
+ * discussed out loud only — nothing is typed, stored or exported.
+ */
+export const PERSONA_DISCUSSION =
+  "What will your target audience start doing / stop doing / do differently thanks to your learning solution?";
+
 export interface PersonaData {
   name: string;
   answers: number[][];   // selected option indices per question (multi-select)
