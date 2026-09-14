@@ -165,6 +165,13 @@
 .tg-opt-card.pd-card.sel{padding:calc(1.1rem - 1px) calc(1rem - 1px);}
 .pd-val{line-height:1.2;}
 .pd-who{font-family:var(--tg-sans); font-size:.68rem; letter-spacing:.02em; color:var(--tg-ink-soft);}
+/* Agreement: options nobody picked — muted, smaller, but still selectable */
+.pd-rest-grid{gap:.8rem; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));}
+.tg-opt-card.pd-rest{
+  background:var(--tg-ground); border-style:dashed; color:var(--tg-ink-soft);
+  min-height:76px; padding:.8rem .9rem; font-size:.95rem;
+}
+.tg-opt-card.pd-rest.sel{background:linear-gradient(180deg,var(--tg-accent-tint),var(--tg-surface)); border-style:solid; color:var(--tg-ink); padding:calc(.8rem - 1px) calc(.9rem - 1px);}
 .tg-lockbar{
   display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
   margin-top:2.8rem; padding-top:1.7rem; border-top:1px solid var(--tg-line);

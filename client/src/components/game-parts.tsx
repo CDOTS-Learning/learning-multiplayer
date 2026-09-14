@@ -359,8 +359,9 @@ type DecideOption = { value: string; who: string[]; apply: (p: Persona) => Perso
 /**
  * One screen of the group AGREEMENT: for a single field (name / a question /
  * the comment) it shows every player's given answer as a clickable option
- * (only the answers actually given, per decision) plus an "Other" free-text for
- * a combined/custom final answer. The current pen-holder decides; others watch.
+ * (with who gave it), then — muted, below — the remaining options nobody
+ * picked, in case the discussion lands somewhere new, plus an "Other"
+ * free-text for a combined/custom final answer. The pen-holder decides; others watch.
  */
 export function PersonaDecide({
   kind, personaIndex, personas, persona, isController, driverLabel, onChange,
@@ -391,7 +392,7 @@ export function PersonaDecide({
   const whoLabel = driverLabel || "Someone";
   const noneNote = (
     <p className="tg-standing" style={{ marginBottom: "1rem" }}>
-      No answers were given here — {isController ? "add one under “Other”." : "the driver can add one under “Other”."}
+      No answers were given here — {isController ? "pick from the options below or add one under “Other”." : "the driver can pick from the options below or add one under “Other”."}
     </p>
   );
   const head = (
@@ -427,6 +428,11 @@ export function PersonaDecide({
       }
     }
     const options = [...given.values()];
+    // Everything nobody picked (except the Other slot, which has its own field below).
+    const givenIdx = new Set(options.map((o) => o.optionIndex));
+    const rest = q.options
+      .map((opt, idx) => ({ value: opt, optionIndex: idx, otherText: "", who: [] as string[] }))
+      .filter((o) => o.optionIndex !== otherIdx && !givenIdx.has(o.optionIndex));
     const isOn = (o: { optionIndex: number; otherText: string }) =>
       sel.includes(o.optionIndex) &&
       (o.optionIndex !== otherIdx || curOther.trim() === o.otherText);
@@ -474,6 +480,25 @@ export function PersonaDecide({
             );
           })}
         </div>
+        {rest.length > 0 && (
+          <>
+            <div className="tg-section-label" style={{ margin: "1.4rem 0 .8rem" }}>
+              <span className="tg-eyebrow" style={{ color: "var(--tg-ink-soft)" }}>{options.length ? "Not picked by anyone — still open" : "All options"}</span>
+            </div>
+            <div className="tg-options pd-rest-grid">
+              {rest.map((o) => {
+                const on = isOn(o);
+                const locked = !on && full;
+                return (
+                  <button key={o.value} className={`tg-opt-card pd-card pd-rest ${on ? "sel" : ""} ${isController ? "" : "is-live"} ${locked ? "pick-full" : ""}`}
+                    onClick={isController && !locked ? () => toggle(o) : undefined} aria-disabled={!isController || locked}>
+                    <span className="pd-val">{o.value}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
         <div className="tg-field" style={{ marginTop: "1.1rem", maxWidth: "34rem" }}>
           <label className="tg-label" htmlFor="pdother">Other — a combined / custom answer{otherIsCustom ? " ✓" : ""}</label>
           <input id="pdother" className="tg-input" placeholder={isController ? "Type a combined answer…" : ""}
