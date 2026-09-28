@@ -51,6 +51,12 @@ Reflection games. They can be archived or ignored.
   rebuilt from it in minutes — but the web addresses themselves are the one
   thing that cannot be recreated once that account is gone. See
   `RENDER-SETUP.md`. Please treat this as the first task, not a someday task.
+
+  **Until that is done, the games are frozen.** Now that the repositories have
+  moved to the team's account, the old hosting account can no longer read them,
+  so anything you push here will not appear on the live links. They keep serving
+  the version that was online on the day of the handover. Section 3 of
+  `RENDER-SETUP.md` is what reconnects the two halves.
 - **A contributed French version of Let's Speak Up on the original project.**
   The English original belongs to another developer (greg-afk). The French
   version runs fine on the link above; contributing it back is optional and
@@ -80,7 +86,9 @@ The loop is short:
 1. Edit the text in the file.
 2. Commit and push to the `main` branch.
 3. The hosting rebuilds automatically; after roughly three minutes the change is
-   live.
+   live. **This step does not work yet** — see the note in section 2. Until the
+   hosting is set up under the team's own account, your change lives on GitHub
+   but the live link keeps showing the old version.
 4. **Open the link and check it.** A typo in a text file cannot break the app,
    but a missing quotation mark or comma can stop the build — in which case the
    old version simply stays online until it is fixed.

@@ -10,6 +10,21 @@ be claimed back by anyone else in a hurry.
 So: move the hosting into an account the team owns. Ideally soon, while the old
 services are still there and the links can be handed over cleanly.
 
+> ### Read this first — what is true right now
+>
+> The repositories have moved to the team's GitHub account. The Render account
+> that runs the five links has **not** moved with them and no longer has access
+> to the code.
+>
+> **The links keep working, but changes no longer reach them.** Anything pushed
+> to these repositories — a corrected question, a new card, a fixed typo — stays
+> on GitHub and does not appear on the live sites. Until the hosting is set up
+> under your own account (section 3), the five games are frozen at the version
+> that was online on the day of the handover.
+>
+> Nothing is broken and nothing is lost. But this is why the task below is worth
+> doing now rather than the first time someone needs a text changed.
+
 ---
 
 ## 1. Why this matters
