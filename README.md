@@ -5,8 +5,8 @@ three questions as themselves, packs learning backpacks, builds one shared
 learner persona, and then goes through the same questions again from the
 persona's point of view — so the perspectives can be compared side by side.
 
-- **Live:** https://learning-multiplayer.onrender.com
-- **Single-player version:** [`learning-singleplayer`](https://github.com/Helti2636/learning-singleplayer) — same journey for one participant
+- **Live:** https://learning-multiplayer-3lgk.onrender.com
+- **Single-player version:** [`learning-singleplayer`](https://github.com/CDOTS-Learning/learning-singleplayer) — same journey for one participant
 
 > Note: the repository is called `learning-multiplayer`. Older local folders may
 > still carry the earlier name `training-reflection-multiplayer` — same project.
@@ -92,8 +92,12 @@ Render Web Service, runtime **Node**:
 - No environment variables, no database.
 
 Every push to `main` triggers a new deployment automatically (about 3 minutes).
-See `RENDER-SETUP.md` in this repo — the hosting still needs to be moved into
-the team's own account.
+The service runs on the team's own Render account — see `RENDER-SETUP.md` for
+how it is set up and what to do when a deployment misbehaves.
+
+> **An older copy may still answer at https://learning-multiplayer.onrender.com.**
+> That one belongs to the previous maintainer's personal account, receives no
+> updates and will disappear. Always share the link at the top of this page.
 
 ## Good to know
 
